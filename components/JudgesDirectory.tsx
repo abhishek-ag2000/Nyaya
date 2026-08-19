@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Gavel, MapPin } from "lucide-react";
+import Link from "next/link";
+import { MapPin } from "lucide-react";
 import { syntheticJudges } from "@/data/synthetic-judges";
 
 const unique = (items: string[]) => Array.from(new Set(items));
@@ -33,7 +34,7 @@ export default function JudgesDirectory() {
       <label>Search judge or jurisdiction<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name, designation or jurisdiction" /></label>
     </section>
     <section className="directory-context"><div><span>Selected context</span><b>{district === "All districts" ? "All listed districts" : district}</b></div><div><span>Courts represented</span><b>{unique(items.map((item) => item.court)).length} <small>illustrative</small></b></div><div><span>Judicial profiles</span><b>{items.length} <small>synthetic</small></b></div><div><span>Jurisdictions shown</span><b>{unique(items.flatMap((item) => item.jurisdiction)).length} <small>illustrative</small></b></div></section>
-    <div className="advocate-cards judge-cards">{items.map((item) => <article key={item.id}><span className="demo-pill">synthetic judicial profile</span><div className="judge-card-icon"><Gavel aria-hidden="true" /></div><h2>{item.name}</h2><p className="advocate-practice">{item.designation}</p><dl><div><dt>District / court</dt><dd><MapPin aria-hidden="true" /> {item.district} · {item.court}</dd></div><div><dt>Jurisdiction</dt><dd>{item.jurisdiction.join(" · ")}</dd></div><div><dt>Courtroom</dt><dd>{item.courtroom}</dd></div><div><dt>Illustrative sitting</dt><dd>{item.sitting}</dd></div></dl></article>)}</div>
+    <div className="advocate-cards judge-cards">{items.map((item, index) => <article key={item.id}><span className="demo-pill">synthetic judicial profile</span><div className={`profile-portrait judge-portrait portrait-${index + 1}`} role="img" aria-label={`Synthetic portrait for ${item.name}`} /><h2>{item.name}</h2><p className="advocate-practice">{item.designation}</p><dl><div><dt>District / court</dt><dd><MapPin aria-hidden="true" /> {item.district} · {item.court}</dd></div><div><dt>Jurisdiction</dt><dd>{item.jurisdiction.join(" · ")}</dd></div><div><dt>Courtroom</dt><dd>{item.courtroom}</dd></div><div><dt>Linked cases</dt><dd>{item.caseIds.length} synthetic case{item.caseIds.length === 1 ? "" : "s"}</dd></div></dl><Link className="directory-profile-link" href={`/judges-directory/${item.id}`}>View profile & linked cases →</Link></article>)}</div>
     {!items.length && <p className="empty-state">No fictional judicial profiles match this filter combination.</p>}
   </main>;
 }
