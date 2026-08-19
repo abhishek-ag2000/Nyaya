@@ -1,0 +1,7 @@
+open terminal
+
+C:\Users\abhis\Documents\ChatGPT\
+
+cd '.\New project\'
+
+corepack pnpm dev
