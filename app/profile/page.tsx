@@ -1,0 +1,1 @@
+import ProfileSettings from "@/components/ProfileSettings"; import { Disclaimer, Footer, Header } from "@/components/SiteChrome"; export default function Page(){return <><Disclaimer/><Header/><ProfileSettings/><Footer/></>}

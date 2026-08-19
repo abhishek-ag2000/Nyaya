@@ -1,0 +1,4 @@
+"use client";
+import { useEffect, useState } from "react";
+const languages=["English","हिन्दी","বাংলা","తెలుగు","मराठी","தமிழ்","ગુજરાતી","ಕನ್ನಡ","മലയാളം","ਪੰਜਾਬੀ","অসমীয়া","ଓଡ଼ିଆ","اردو","संस्कृत","नेपाली","कोंकणी","मैथिली","कश्मीरी","سنڌي","संथाली","Manipuri","Bodo","Dogri"];
+export default function LanguageSelector(){const [language,setLanguage]=useState("English");useEffect(()=>setLanguage(window.localStorage.getItem("nyaya-language")??"English"),[]);return <label className="language-select"><span className="sr-only">Display language</span><select aria-label="Display language" value={language} onChange={(event)=>{setLanguage(event.target.value);window.localStorage.setItem("nyaya-language",event.target.value)}}>{languages.map((item)=><option key={item}>{item}</option>)}</select></label>}

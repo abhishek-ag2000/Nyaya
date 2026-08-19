@@ -1,0 +1,1 @@
+import AdvocateDirectory from "@/components/AdvocateDirectory"; import { Disclaimer, Footer, Header } from "@/components/SiteChrome"; export default function Page(){return <><Disclaimer/><Header/><AdvocateDirectory/><Footer/></>}

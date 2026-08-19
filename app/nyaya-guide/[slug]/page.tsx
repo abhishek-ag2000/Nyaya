@@ -1,0 +1,1 @@
+import { GuideArticle } from "@/components/tier-c/TierCSurfaces"; import { Disclaimer, Footer, Header } from "@/components/SiteChrome"; export default function Page({params}:{params:{slug:string}}){return <><Disclaimer/><Header/><GuideArticle slug={params.slug}/><Footer/></>}

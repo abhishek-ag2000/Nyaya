@@ -1,0 +1,1 @@
+import { Suspense } from "react"; import { Disclaimer, Footer, Header } from "@/components/SiteChrome"; import FindCasePage from "@/components/FindCasePage"; export default function Page(){return <><Disclaimer/><Header/><Suspense fallback={<main className="wrap static-page"><p>Loading local case finder…</p></main>}><FindCasePage/></Suspense><Footer/></>}
