@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
-export default function LegacyUploadRoute({ params }: { params: { id: string } }) {
-  redirect(`/cases/${params.id}/documents/upload`);
+export default async function LegacyUploadRoute({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  redirect(`/cases/${id}/documents/upload`);
 }

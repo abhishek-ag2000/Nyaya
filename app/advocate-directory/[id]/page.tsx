@@ -8,8 +8,9 @@ export function generateStaticParams() {
   return syntheticAdvocates.map(({ id }) => ({ id }));
 }
 
-export default function AdvocateProfilePage({ params }: { params: { id: string } }) {
-  const profileIndex = syntheticAdvocates.findIndex((item) => item.id === params.id);
+export default async function AdvocateProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const profileIndex = syntheticAdvocates.findIndex((item) => item.id === id);
   if (profileIndex < 0) notFound();
   const profile = syntheticAdvocates[profileIndex];
   const cases = getUserCases().filter((item) => profile.caseIds.includes(item.id));
