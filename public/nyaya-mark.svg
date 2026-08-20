@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Nyaya">
+  <rect width="64" height="64" rx="16" fill="#1A1917"/>
+  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="15.25" fill="none" stroke="#C6AC82" stroke-opacity="0.45" stroke-width="1.5"/>
+  <circle cx="32" cy="13.5" r="3.1" fill="#C6AC82"/>
+  <rect x="30.2" y="16" width="3.6" height="31" rx="1.8" fill="#F4E6CA"/>
+  <rect x="13" y="21.5" width="38" height="3.2" rx="1.6" fill="#C6AC82"/>
+  <path d="M16.4 24.7v8.4M47.6 24.7v8.4" stroke="#C6AC82" stroke-width="2" stroke-linecap="round"/>
+  <path d="M10.8 33.2h13.4l-2.4 8.2H13.2z" fill="#F4E6CA"/>
+  <path d="M39.8 33.2h13.4l-2.4 8.2H42.2z" fill="#F4E6CA"/>
+  <rect x="22.5" y="46.5" width="19" height="3.2" rx="1.6" fill="#C6AC82"/>
+  <rect x="27.5" y="49.2" width="9" height="3.4" rx="1.7" fill="#F4E6CA"/>
+</svg>

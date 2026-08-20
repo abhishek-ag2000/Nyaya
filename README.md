@@ -1,23 +1,23 @@
 # Nyaya — Unified Digital Courts Interface
 
-Nyaya is an independent civic-tech prototype exploring how India’s fragmented digital court journeys could feel clearer, more accessible, and more coherent.
+Nyaya is an independent civic-tech project exploring how India’s fragmented digital court journeys could feel clearer, more accessible, and more coherent.
 
 It brings case discovery, timelines, filings, documents, hearings, notifications, court information, and role-aware workspaces into one responsive interface. The project uses a premium civic-tech visual system with accessible motion, layered data surfaces, and mobile-first layouts.
 
 > [!IMPORTANT]
-> Nyaya is a conceptual prototype. It is not affiliated with or endorsed by the Government of India, the e-Committee of the Supreme Court of India, NIC, or any court. It does not connect to live court systems. All cases, people, records, statistics, documents, and activity shown are synthetic or illustrative.
+> Nyaya is a conceptual project. It is not affiliated with or endorsed by the Government of India, the e-Committee of the Supreme Court of India, NIC, or any court. It does not connect to live court systems. All cases, people, records, statistics, documents, and activity shown are illustrative.
 
 ## Highlights
 
-- Unified synthetic case workspace with status, procedural timeline, filings, documents, hearings, and action items
+- Unified case workspace with status, procedural timeline, filings, documents, hearings, and action items
 - Role-aware experiences for citizens, advocates, judges, registry staff, stenographers, and police personnel
 - Case search by case details, party, advocate, judge, and location-based criteria
 - Demonstration filing, document-intake, scrutiny, certified-copy, cause-list, and notification workflows
-- Interactive India court-data visualization using synthetic statistics
-- NyayaAI navigation assistant with clear prototype and legal-advice limitations
+- Interactive India court-data visualization using illustrative statistics
+- NyayaAI navigation assistant with clear usage and legal-advice limitations
 - Premium light civic-tech design system with glass surfaces, data grids, responsive layouts, and purposeful motion
 - Keyboard focus styling and `prefers-reduced-motion` support
-- Local browser persistence for synthetic demo sessions and case mutations
+- Local browser persistence for demo sessions and case mutations
 
 ## Technology
 
@@ -46,7 +46,7 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-The primary synthetic case ID is:
+The primary demo case ID is:
 
 ```text
 NYA-WB-DEMO-04821
@@ -71,19 +71,19 @@ pnpm check
 ## Project structure
 
 ```text
-app/                  Next.js routes and global visual system
-components/           Shared navigation, dashboards, case views, and workflows
-components/cases/     Unified case, document, and filing interfaces
+app/ Next.js routes and global visual system
+components/ Shared navigation, dashboards, case views, and workflows
+components/cases/ Unified case, document, and filing interfaces
 components/workspaces Role-specific workspace surfaces
-data/                 Synthetic fixtures, role configuration, and local demo store
-docs/                 Demonstration QA notes
-public/demo/          Synthetic demonstration documents
-scripts/              Supporting asset-generation scripts
+data/ fixtures, role configuration, and local demo store
+docs/ Demonstration QA notes
+public/demo/ demonstration documents
+scripts/ Supporting asset-generation scripts
 ```
 
 The futuristic design layer is defined in `app/premium-theme.css`, while `components/SiteExperience.tsx` provides lightweight reveal and scroll-progress behavior.
 
-## Prototype boundaries
+## Project boundaries
 
 Nyaya currently does **not** provide:
 
@@ -94,7 +94,7 @@ Nyaya currently does **not** provide:
 - Legal advice or automated judicial decision-making
 - A production backend or secure document store
 
-Browser storage is used only to make the local synthetic demonstration interactive. Do not enter real case information or personal data.
+Browser storage is used only to make the local demonstration interactive. Do not enter real case information or personal data.
 
 ## Design principles
 
@@ -102,7 +102,7 @@ Browser storage is used only to make the local synthetic demonstration interacti
 2. Explain procedural status in plain language without predicting outcomes.
 3. Keep human responsibility visible in legal and institutional workflows.
 4. Design for keyboard, mobile, reduced-motion, and low-context use.
-5. Label synthetic and unavailable functionality honestly.
+5. Label demo and unavailable functionality honestly.
 
 ## License and use
 

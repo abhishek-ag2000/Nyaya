@@ -1,1 +1,0 @@
-import { LiveCourt } from "@/components/tier-c/TierCSurfaces"; import { Disclaimer, Footer, Header } from "@/components/SiteChrome"; export default function Page(){return <><Disclaimer/><Header/><LiveCourt/><Footer/></>}

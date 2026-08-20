@@ -1,7 +1,21 @@
-import Link from "next/link";
 import { Disclaimer, Footer, Header } from "@/components/SiteChrome";
 import AdvocateOnly from "@/components/AdvocateOnly";
+import FreshCaseFiling from "@/components/filing/FreshCaseFiling";
+import { createPageMetadata } from "@/lib/seo";
+
+export const metadata = createPageMetadata(
+  "File a fresh case",
+  "9-step Filing Wizard for district-court practice: classify the matter, choose forum, draft parties, facts and prayers, then assemble a plaint. Nothing is submitted to any court.",
+  "/file-a-case"
+);
 
 export default function FileACasePage() {
-  return <><Disclaimer /><Header /><AdvocateOnly action="Starting a fresh case"><main className="wrap fresh-case"><p className="kicker">Fresh case filing · prototype</p><h1>Start a fresh case,<br />with a clearer checklist.</h1><p className="fresh-case-intro">This designed-only route shows how a new filing could be organised around one case from the start. It cannot create, submit, or register a case with any court or authority.</p><section className="fresh-case-steps"><article><span>01</span><h2>Describe the matter</h2><p>Choose a broad case category and identify the people involved in a future, synthetic demo workflow.</p></article><article><span>02</span><h2>Prepare documents</h2><p>Add and review documents once, with clear ownership and structural intake information.</p></article><article><span>03</span><h2>Review before any filing</h2><p>A future prototype flow could show procedural readiness without judging legal merits or submitting to a court.</p></article></section><section className="fresh-case-note"><span className="eyebrow">Available in this prototype</span><h2>Try the document-intake demo</h2><p>Use the bundled synthetic case to see a document enter the shared case record after human review.</p><Link className="brass-cta" href="/cases/NYA-WB-DEMO-04821/documents/upload">Open document intake demo →</Link></section></main></AdvocateOnly><Footer /></>;
+  return <>
+    <Disclaimer />
+    <Header />
+    <AdvocateOnly action="Starting a fresh case">
+      <FreshCaseFiling />
+    </AdvocateOnly>
+    <Footer />
+  </>;
 }

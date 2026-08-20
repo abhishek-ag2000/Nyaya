@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const siteName = "Nyaya Digital Courts";
-export const siteDescription = "An independent civic-tech prototype exploring a clearer, unified digital court experience for citizens, advocates, judges, and court staff in India.";
+export const siteDescription = "An independent civic-tech project exploring a clearer, unified digital court experience for citizens, advocates, judges, and court staff in India.";
 export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
 
 export function createPageMetadata(title: string, description: string, path: string): Metadata {

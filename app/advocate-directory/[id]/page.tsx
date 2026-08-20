@@ -1,11 +1,23 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Disclaimer, Footer, Header } from "@/components/SiteChrome";
+import { IdentityVerifiedBadge, ProfileChips, toLinkedCaseItems } from "@/components/directory/PublicProfileShared";
+import { LinkedCasesPanel } from "@/components/directory/LinkedCasesPanel";
 import { syntheticAdvocates } from "@/data/synthetic-advocates";
 import { getUserCases } from "@/data/user-cases";
+import { createPageMetadata } from "@/lib/seo";
+
+const currentYear = 2026;
 
 export function generateStaticParams() {
   return syntheticAdvocates.map(({ id }) => ({ id }));
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const profile = syntheticAdvocates.find((item) => item.id === id);
+  if (!profile) return createPageMetadata("Lawyer profile", "Lawyer profile on Nyaya.", "/advocate-directory");
+  return createPageMetadata(`${profile.displayName} · Lawyers directory`, `Public profile for ${profile.displayName} at ${profile.court}.`, `/advocate-directory/${profile.id}`);
 }
 
 export default async function AdvocateProfilePage({ params }: { params: Promise<{ id: string }> }) {
@@ -13,19 +25,42 @@ export default async function AdvocateProfilePage({ params }: { params: Promise<
   const profileIndex = syntheticAdvocates.findIndex((item) => item.id === id);
   if (profileIndex < 0) notFound();
   const profile = syntheticAdvocates[profileIndex];
-  const cases = getUserCases().filter((item) => profile.caseIds.includes(item.id));
+  const cases = getUserCases();
+  const linked = toLinkedCaseItems(profile.caseIds, cases, profile.caseRoles);
+  const portrait = (profileIndex % 6) + 1;
+  const yearsPracticing = currentYear - profile.practicingSince;
 
-  return <><Disclaimer /><Header /><main className="wrap directory-profile-page">
-    <Link className="profile-back-link" href="/advocate-directory">← Back to lawyers directory</Link>
-    <section className="directory-profile-hero">
-      <div className={`profile-portrait profile-portrait-large lawyer-portrait portrait-${profileIndex + 1}`} role="img" aria-label={`Synthetic portrait for ${profile.name}`} />
-      <div><span className="demo-pill">synthetic professional profile</span><p className="kicker">Lawyer profile</p><h1>{profile.name}</h1><p>{profile.practiceAreas.join(" · ")}</p></div>
-    </section>
-    <section className="profile-facts" aria-label="Professional profile details">
-      <div><span>District</span><b>{profile.district}</b></div><div><span>Court</span><b>{profile.court}</b></div><div><span>Registration</span><b>{profile.registrationStatus}</b></div><div><span>Document review</span><b>{profile.documentReview}</b></div>
-    </section>
-    <section className="linked-cases-page"><div><span className="eyebrow">Linked synthetic cases</span><h2>Cases under selected counsel</h2><p>Illustrative case links for this fictional profile.</p></div>
-      <div className="linked-case-list">{cases.map((item) => <Link href={`/cases/${item.id}`} key={item.id}><div><b>{item.title}</b><p>{item.id} · {item.caseType} · {item.court.name}</p></div><span>{item.stage.current} →</span></Link>)}{!cases.length && <p className="empty-state">No bundled cases are linked to this profile.</p>}</div>
-    </section>
-  </main><Footer /></>;
+  return <>
+    <Disclaimer />
+    <Header />
+    <main className="wrap directory-profile-page">
+      <Link className="profile-back-link" href="/advocate-directory">← Back to lawyers directory</Link>
+
+      <div className="directory-profile-top">
+      <section className="directory-profile-hero">
+        <div className={`profile-portrait profile-portrait-large lawyer-portrait portrait-${portrait}`} role="img" aria-label={`Portrait for ${profile.displayName}`} />
+        <div className="profile-hero-copy">
+          <p className="kicker">Public advocate profile</p>
+          <h1>{profile.displayName}</h1>
+          <p className="profile-synthetic-label">{profile.syntheticLabel}</p>
+          <p className="profile-hero-role">Bar enrolment <code>{profile.barEnrollmentId}</code></p>
+          <p className="profile-hero-court">{profile.court}</p>
+          <p className="profile-hero-place">{profile.district}, {profile.state}</p>
+          {profile.identityVerified && <IdentityVerifiedBadge />}
+        </div>
+      </section>
+
+      <section className="profile-facts advocate-profile-facts" aria-label="Practice details">
+          <div><span>Years practicing</span><b>{`${yearsPracticing} years`}</b><small>Since {profile.practicingSince} (illustrative)</small></div>
+        <div className="profile-fact-chips"><span>Practice areas</span><ProfileChips items={profile.practiceAreas} label="Practice areas" /></div>
+        <div className="profile-fact-chips"><span>Languages</span><ProfileChips items={profile.languages} label="Languages" /></div>
+      </section>
+      </div>
+
+      <section className="profile-panel">
+        <LinkedCasesPanel items={linked} empty="No bundled cases are linked to this profile." roleLabel />
+      </section>
+    </main>
+    <Footer />
+  </>;
 }

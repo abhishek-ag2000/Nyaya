@@ -1,5 +1,39 @@
 "use client";
-import Link from "next/link";
+
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getMockRole } from "@/data/mock-session";
-export default function AdvocateOnly({children, action}:{children:React.ReactNode;action:string}){const [role,setRole]=useState<"advocate"|null>(null);useEffect(()=>{const refresh=()=>setRole(getMockRole()==="advocate"?"advocate":null);refresh();window.addEventListener("nyaya-mock-session",refresh);return()=>window.removeEventListener("nyaya-mock-session",refresh)},[]);if(role==="advocate")return <>{children}</>;return <main className="wrap static-page access-gate"><p className="kicker">Advocate workspace · mock access</p><h1>Advocate demo access required.</h1><p>{action} is available only when the synthetic Advocate role is selected. This is a local prototype access rule, not real professional verification.</p><Link className="login" href="/login">Log in as Advocate →</Link></main>}
+import { roleHome, type Role } from "@/data/roles";
+
+export default function AdvocateOnly({
+  children,
+  action: _action,
+}: {
+  children: React.ReactNode;
+  action: string;
+}) {
+  const router = useRouter();
+  const [role, setRole] = useState<Role | null | undefined>(undefined);
+
+  useEffect(() => {
+    const refresh = () => setRole(getMockRole());
+    refresh();
+    window.addEventListener("nyaya-mock-session", refresh);
+    return () => window.removeEventListener("nyaya-mock-session", refresh);
+  }, []);
+
+  useEffect(() => {
+    if (role === undefined) return;
+    if (!role) {
+      router.replace("/login");
+      return;
+    }
+    if (role !== "advocate") router.replace(roleHome(role));
+  }, [role, router]);
+
+  if (role !== "advocate") {
+    return <main className="wrap workspace-loading">Loading workspace…</main>;
+  }
+
+  return <>{children}</>;
+}
