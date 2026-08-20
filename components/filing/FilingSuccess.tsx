@@ -50,10 +50,11 @@ export default function FilingSuccess() {
   }
 
   const filedLabel = new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" }).format(new Date(receipt.filedAt));
+  const transactionId = receipt.txn;
 
   async function copyTxn() {
     try {
-      await navigator.clipboard.writeText(receipt.txn);
+      await navigator.clipboard.writeText(transactionId);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     } catch { /* ignore */ }
