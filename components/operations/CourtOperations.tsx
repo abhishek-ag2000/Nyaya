@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { findCaseDefaults } from "@/data/find-case-fixture";
 import { getUserCases } from "@/data/user-cases";
-import type { UnifiedCase } from "@/data/unified-case";
+import { demoUnifiedCase, type UnifiedCase } from "@/data/unified-case";
 
 const date = (v: string) => new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${v}T00:00:00`));
 const todayIso = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
@@ -229,6 +229,54 @@ export function CauseList() {
 }
 
 type Defect = { id: string; caseId: string; title: string; caseTitle: string; submitted: string; status: string; issues: string[]; href: string };
-function defects(cases: UnifiedCase[]): Defect[] { const main = cases[0]; const filing = main?.filings.find((item) => item.id === "filing-submission"); const result: Defect[] = filing && filing.status === "Needs Attention" ? [{ id: filing.id, caseId: main.id, title: filing.title, caseTitle: main.title, submitted: filing.date, status: filing.status, issues: ["Court fee / valuation statement not detected", "Annexure numbering incomplete"], href: `/cases/${main.id}/filings/${filing.id}/readiness` }] : []; return [...result, { id: "tier-b-execution", caseId: "NYA-DEMO-EXE-00714", title: "Execution Application", caseTitle: "Demo Finance Ltd. v. R. Sen", submitted: "2026-08-18", status: "Needs Attention", issues: ["Affidavit not detected"], href: "/cases/NYA-DEMO-EXE-00714" }]; }
+function defects(cases: UnifiedCase[]): Defect[] {
+  const main = cases.find((item) => item.id === demoUnifiedCase.id) ?? cases[0];
+  const filing = main?.filings.find((item) => item.id === "filing-submission");
+  const result: Defect[] = filing && filing.status === "Needs Attention"
+    ? [{
+        id: filing.id,
+        caseId: main.id,
+        title: filing.title,
+        caseTitle: main.title,
+        submitted: filing.date,
+        status: filing.status,
+        issues: ["Court fee / valuation statement not detected", "Annexure numbering incomplete"],
+        href: `/cases/${main.id}/filings/${filing.id}/readiness`,
+      }]
+    : [];
+  return [
+    ...result,
+    {
+      id: "tier-b-execution",
+      caseId: "NYA-DEMO-EXE-00714",
+      title: "Execution Application",
+      caseTitle: "Demo Finance Ltd. v. R. Sen",
+      submitted: "2026-08-18",
+      status: "Needs Attention",
+      issues: ["Affidavit not detected"],
+      href: "/cases/NYA-DEMO-EXE-00714",
+    },
+    {
+      id: "tier-b-misc-stay",
+      caseId: "NYA-DEMO-MISC-00601",
+      title: "Stay application annexures",
+      caseTitle: "In re Demo Stay Application",
+      submitted: "2026-08-23",
+      status: "Needs Attention",
+      issues: ["Supporting affidavit pagination incomplete"],
+      href: "/cases/NYA-DEMO-MISC-00601",
+    },
+    {
+      id: "tier-b-guardianship",
+      caseId: "NYA-DEMO-GW-00101",
+      title: "Guardianship petition checklist",
+      caseTitle: "In re Minor Demo Child (Guardianship)",
+      submitted: "2026-08-30",
+      status: "Needs Attention",
+      issues: ["Age proof of the minor not marked on the docket"],
+      href: "/cases/NYA-DEMO-GW-00101",
+    },
+  ];
+}
 export function FilingDefects() { const cases = useCases(); const items = defects(cases); return <main className="wrap operations-page"><p className="kicker">Filing readiness · demo data</p><h1>Filing readiness</h1><p>Filings that need review before the next procedural step.</p><p className="quiet-summary">{items.length} filings need attention</p><section className="defect-list">{items.map((item) => <article key={item.id}><div><span className="defect-status">{item.status}</span><h2>{item.title}</h2><p>{item.caseTitle}</p><small>Filed: {date(item.submitted)}</small><ul>{item.issues.map((issue) => <li key={issue}>⚠ {issue}</li>)}</ul></div><Link href={item.href}>Review filing →</Link></article>)}</section></main>; }
 export function RegistryDefects() { const cases = useCases(); const initial = defects(cases).map((item, index) => ({...item, status: index ? "Resubmitted" : item.status})); const [items, setItems] = useState(initial); useEffect(() => setItems(defects(cases).map((item, index) => ({...item, status: index ? "Resubmitted" : item.status}))), [cases]); return <main className="wrap operations-page registry-page"><p className="kicker">Registry workspace · demo data</p><h1>Registry scrutiny</h1><p>Filing defects and resubmissions.</p><div className="registry-summary"><span>New filings <b>12</b></span><span>Needs attention <b>{items.filter((i) => i.status === "Needs Attention").length}</b></span><span>Resubmitted <b>{items.filter((i) => i.status === "Resubmitted").length}</b></span><span>Ready <b>8</b></span></div><div className="registry-table" role="table"><div role="row" className="registry-head"><span>Filing</span><span>Case</span><span>Submitted</span><span>Issues</span><span>Status</span><span /></div>{items.map((item) => <div role="row" key={item.id}><span><b>{item.title}</b></span><span>{item.caseTitle}</span><span>{date(item.submitted)}</span><span>{item.issues.length} issue{item.issues.length > 1 ? "s" : ""}</span><span>{item.status}</span><button onClick={() => setItems(items.map((current) => current.id === item.id ? {...current, status: "Reviewed"} : current))} disabled={item.status === "Reviewed"}>{item.status === "Reviewed" ? "Reviewed" : "Mark reviewed"}</button></div>)}</div></main>; }

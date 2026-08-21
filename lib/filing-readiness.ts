@@ -1,3 +1,6 @@
+import { getCaseCategory } from "@/data/case-categories";
+import type { Filing, UnifiedCase } from "@/data/unified-case";
+
 export type ReadinessInput = {
   causeTitleReady: boolean;
   firstPartyNamed: boolean;
@@ -27,4 +30,39 @@ export function evaluateFilingReadiness(input: ReadinessInput): ReadinessRule[] 
     { id: "documents", label: "Required documents", passed: missingDocs.length === 0 && input.requiredDocuments.length > 0, detail: missingDocs.length ? `Still unmarked: ${missingDocs.join(", ")}.` : "Category-specific documents are marked as assembled." },
     { id: "fee-limitation", label: "Court fee & limitation references", passed: input.feeAndLimitationAcknowledged, detail: input.feeAndLimitationAcknowledged ? "Illustrative court-fee and limitation references have been acknowledged." : "Acknowledge the illustrative court-fee estimate and limitation reference." }
   ];
+}
+
+/** Derive structural readiness rules from an already-filed case record. */
+export function rulesFromCaseFiling(caseData: UnifiedCase, filing: Filing): ReadinessRule[] {
+  const firstNamed = Boolean(caseData.parties.petitioners[0]?.trim());
+  const oppositeNamed = Boolean(caseData.parties.respondents[0]?.trim());
+  const draft = caseData.assembledDraft ?? "";
+  const factMatches = draft.match(/^\d+\.\t/gm);
+  const factCount = factMatches?.length ?? (draft.includes("MOST RESPECTFULLY SHOWETH") ? 1 : 0);
+  const category = getCaseCategory(caseData.categoryId);
+  const docHaystack = [
+    ...caseData.documents.map((document) => document.title),
+    filing.title,
+    draft,
+  ].join(" ").toLowerCase();
+  const requiredDocuments = (category?.requiredDocuments ?? []).map((label) => ({
+    label,
+    assembled: docHaystack.includes(label.toLowerCase()) || caseData.documents.length > 0,
+  }));
+  const filingOnRecord = ["Accepted", "Registered", "Under Review", "Needs Attention", "Submitted"].includes(filing.status);
+
+  return evaluateFilingReadiness({
+    causeTitleReady: firstNamed && oppositeNamed,
+    firstPartyNamed: firstNamed,
+    oppositePartyNamed: oppositeNamed,
+    forumReady: Boolean(caseData.forum?.courtLevel) || Boolean(caseData.court.name),
+    jurisdictionConfirmed: filingOnRecord && firstNamed && oppositeNamed,
+    factCount: factCount || (draft.length > 200 ? 1 : 0),
+    primaryPrayer: /PRAYER|prayed that/i.test(draft) || Boolean(filing.detail),
+    verificationPresent: /do hereby verify|Statement of Truth|verification/i.test(draft),
+    requiredDocuments: requiredDocuments.length
+      ? requiredDocuments
+      : caseData.documents.map((document) => ({ label: document.title, assembled: true })),
+    feeAndLimitationAcknowledged: filingOnRecord,
+  });
 }

@@ -4,14 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, Loader2 } from "lucide-react";
 import { caseCategories, getCaseCategory, type CaseCategory } from "@/data/case-categories";
-import { FILING_ROUTE_DISCLAIMER, getStageMap, offenceClassOptions, type OffenceClass } from "@/data/forum-and-stages";
+import { FILING_ROUTE_DISCLAIMER, FORUM_GUIDANCE_LABEL, getStageMap, offenceClassOptions, type OffenceClass } from "@/data/forum-and-stages";
 import { createFiledDemoCase } from "@/data/demo-case-store";
 import {
   DELHI_COURT_COMPLEXES, FILING_STEPS, PROTOTYPE_ADVOCATE, initialWizardDraft,
   pecuniaryTier, seedForCategory, type WizardDraft
 } from "@/data/filing-wizard";
 import type { UnifiedCase } from "@/data/unified-case";
-import { assembleDraft, formatRupees, illustrativeCourtFee, suggestedForumFor, type FilingParty } from "@/lib/filing-draft";
+import { assembleDraft, formatRupees, illustrativeCourtFee, illustrativeLimitationLabel, suggestedForumFor, type FilingParty } from "@/lib/filing-draft";
 import { evaluateFilingReadiness } from "@/lib/filing-readiness";
 
 const localIso = () => {
@@ -155,7 +155,9 @@ export default function FreshCaseFiling() {
     window.setTimeout(() => router.push(`/file-a-case/success?case=${encodeURIComponent(id)}&txn=${encodeURIComponent(efiRef)}`), 1100);
   }
 
-  const withinLimitation = Boolean(state.earliestDate);
+  const limitationBadge = category && state.earliestDate
+    ? illustrativeLimitationLabel(state.earliestDate, category.limitationReference, today)
+    : null;
   const nav = (
     <div className="filing-nav-actions">
       {state.step > 1 && <button className="ghost-cta" onClick={() => goTo(state.step - 1)} type="button"><ArrowLeft aria-hidden="true" className="back-arrow-icon" /> Previous step ({String(state.step - 1).padStart(2, "0")})</button>}
@@ -263,6 +265,12 @@ export default function FreshCaseFiling() {
 
           {state.step === 2 && category && forum && (
             <div className="forum-form">
+              <div className="suggested-forum" aria-label="Suggested forum">
+                <span className="eyebrow">Suggested forum</span>
+                <b>{forum.courtLevel}</b>
+                <p>{forum.provision}</p>
+                <p className="legal-disclosure">{FORUM_GUIDANCE_LABEL}</p>
+              </div>
               <label className="filing-field">District &amp; court complex
                 <select onChange={(event) => set("courtComplex", event.target.value)} value={state.courtComplex}>
                   {DELHI_COURT_COMPLEXES.map((complex) => <option key={complex} value={complex}>{complex}</option>)}
@@ -279,9 +287,10 @@ export default function FreshCaseFiling() {
                 <label className="filing-field">Suit pecuniary valuation (INR ₹)
                   <input inputMode="numeric" onChange={(event) => set("claimValue", event.target.value.replace(/[^\d]/g, ""))} value={state.claimValue} />
                   <div className="fee-row">
-                    <span>Calculated Court Fee: {fee ? formatRupees(fee) : "—"}</span>
+                    <span>Illustrative Court Fee Estimate: {fee ? formatRupees(fee) : "—"}</span>
                     <span>Tier: {pecuniaryTier(state.claimValue, state.commercialSuit)}</span>
                   </div>
+                  <p className="legal-disclosure">Illustrative procedural reference only. Verify the applicable court-fee statute, schedule and local rules before filing.</p>
                 </label>
               )}
               <div className="forum-split">
@@ -327,7 +336,7 @@ export default function FreshCaseFiling() {
               <label className="filing-field">Date when cause of action first accrued
                 <div className="date-row">
                   <input onChange={(event) => set("earliestDate", event.target.value)} type="date" value={state.earliestDate} />
-                  {withinLimitation && <span>Within 3-Year Statutory Limitation Period</span>}
+                  {limitationBadge && <span>{limitationBadge}</span>}
                 </div>
               </label>
               <label className="filing-field">Material facts synopsis (Order VI Rule 2 CPC)

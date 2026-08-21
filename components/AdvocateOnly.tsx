@@ -7,11 +7,12 @@ import { roleHome, type Role } from "@/data/roles";
 
 export default function AdvocateOnly({
   children,
-  action: _action,
+  action,
 }: {
   children: React.ReactNode;
   action: string;
 }) {
+  void action;
   const router = useRouter();
   const [role, setRole] = useState<Role | null | undefined>(undefined);
 

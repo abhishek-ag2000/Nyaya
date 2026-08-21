@@ -183,18 +183,34 @@ export function seedForCategory(categoryId: CaseCategoryId): Omit<WizardDraft, "
     };
   }
 
+  if (categoryId === "civil-appeal") {
+    return {
+      ...base,
+      subtypeId: "first-appeal",
+      claimValue: "1800000",
+      first: [emptyParty("Appellant", { name: "Kapoor Demo Services", constitution: "Partnership firm", address: "Shop 7, Karol Bagh, New Delhi 110005" })],
+      opposite: [emptyParty("Respondent", { name: "Metro Demo Works", constitution: "Proprietary concern", address: "B-11, Naraina Industrial Area, New Delhi 110028" })],
+      facts: [
+        "The trial court dismissed the money suit on 14.11.2025. The appellant challenges findings on limitation and the rejection of documentary exhibits.",
+        "A first appeal is preferred under Section 96 CPC with a prayer for stay of the decree."
+      ],
+      primaryPrayer: "Set aside the decree dated 14.11.2025 and decree the suit as prayed",
+      alternativePrayer: "Stay execution of the decree pending disposal of the appeal"
+    };
+  }
+
   if (categoryId === "misc-application") {
     return {
       ...base,
       subtypeId: "interim",
-      claimValue: "2500000",
-      first: [emptyParty("Applicant", { name: "Bharat Logistics Private Limited", constitution: "Corporate Body / Company", address: "Plot 42, Okhla Industrial Area Phase III, New Delhi 110020" })],
-      opposite: [emptyParty("Opposite party", { name: "Om Sai Freight Carriers & Anr.", constitution: "Partnership", address: "Shop No. 12, Transport Nagar, Kashmere Gate, Delhi 110006" })],
+      claimValue: "900000",
+      first: [emptyParty("Applicant", { name: "Chhetri Demo Applicant", constitution: "Individual", address: "Hill Cart Road, Siliguri, Darjeeling" })],
+      opposite: [emptyParty("Opposite party", { name: "Lama Demo Opposite Party", constitution: "Individual", address: "Sevoke Road, Siliguri, Darjeeling" })],
       facts: [
-        "The parent civil suit is pending. The defendant is attempting to alienate commercial assets, defeating the money claim.",
+        "The parent civil suit is pending. The opposite party is attempting to alienate the scheduled property, defeating the claim.",
         "An ad-interim injunction is sought under Order XXXIX Rules 1 and 2, citing prima facie case, irreparable injury and balance of convenience."
       ],
-      primaryPrayer: "Grant an ad-interim injunction restraining disposal of commercial assets until further orders",
+      primaryPrayer: "Grant an ad-interim injunction restraining disposal of the scheduled property until further orders",
       alternativePrayer: "Prayer for stay of any further transfer of the subject-matter pending hearing"
     };
   }
@@ -217,8 +233,8 @@ export function seedForCategory(categoryId: CaseCategoryId): Omit<WizardDraft, "
   return {
     ...base,
     subtypeId: "civil-rev",
-    first: [emptyParty("Petitioner", { name: "Bharat Logistics Private Limited", constitution: "Corporate Body / Company", address: "Plot 42, Okhla Industrial Area Phase III, New Delhi 110020" })],
-    opposite: [emptyParty("Respondent", { name: "Om Sai Freight Carriers & Anr.", constitution: "Partnership", address: "Shop No. 12, Transport Nagar, Kashmere Gate, Delhi 110006" })],
+    first: [emptyParty("Petitioner", { name: "Dutta Demo", constitution: "Individual", address: "Beadon Street, Kolkata 700006" })],
+    opposite: [emptyParty("Respondent", { name: "Municipal Demo Board", constitution: "Local authority", address: "Municipal Office, Kolkata" })],
     facts: [
       "The subordinate court declined to consider a jurisdictional objection apparent on the face of the record.",
       "Revision is sought under CPC Section 115 to set aside the impugned order dated 14.11.2025 and to stay its operation."

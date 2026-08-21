@@ -43,14 +43,14 @@ export const syntheticJudges: SyntheticJudge[] = [
       publicEnquiryPhone: "Not published — contact court registry",
       note: registryNote
     },
-    caseIds: ["NYA-WB-DEMO-04821", "NYA-DEMO-CRM-00109", "NYA-DEMO-BAIL-01122", "NYA-WB-DEMO-05510", "NYA-DEMO-MISC-00612", "NYA-KA-DEMO-01247"],
+    caseIds: ["NYA-WB-DEMO-04821", "NYA-DEMO-CRM-00109", "NYA-DEMO-BAIL-01122", "NYA-WB-DEMO-05510", "NYA-DEMO-GW-00101", "NYA-DEMO-CRA-00244"],
     caseHistory: [
-      { date: "2026-08-19", caseId: "NYA-DEMO-MISC-00612", summary: "Miscellaneous application listed for directions." },
+      { date: "2026-08-19", caseId: "NYA-DEMO-CRA-00244", summary: "Criminal appeal listed for hearing." },
       { date: "2026-08-16", caseId: "NYA-DEMO-CRM-00109", summary: "Arguments date confirmed on the case record." },
       { date: "2026-08-14", caseId: "NYA-DEMO-BAIL-01122", summary: "Bail application taken up and listed for hearing." },
-      { date: "2026-08-12", caseId: "NYA-WB-DEMO-04821", summary: "Interim bail order — conditions set, next hearing scheduled." },
-      { date: "2026-08-08", caseId: "NYA-WB-DEMO-05510", summary: "Criminal revision admitted and listed for arguments." },
-      { date: "2026-08-05", caseId: "NYA-KA-DEMO-01247", summary: "Connected bail matter noted on the public record." }
+      { date: "2026-08-12", caseId: "NYA-WB-DEMO-04821", summary: "Interim application order recorded; next hearing scheduled." },
+      { date: "2026-08-08", caseId: "NYA-WB-DEMO-05510", summary: "Criminal revision admitted and listed for hearing." },
+      { date: "2026-08-05", caseId: "NYA-DEMO-GW-00101", summary: "Guardianship petition presented and recorded." }
     ]
   },
   {
@@ -72,14 +72,14 @@ export const syntheticJudges: SyntheticJudge[] = [
       publicEnquiryPhone: "Not published — contact court registry",
       note: registryNote
     },
-    caseIds: ["NYA-DEMO-CIV-02031", "NYA-DEMO-EXE-00714", "NYA-DEMO-FAM-00451", "NYA-DEMO-APL-00940", "NYA-MH-DEMO-03318", "NYA-DL-DEMO-01982"],
+    caseIds: ["NYA-DEMO-CIV-02031", "NYA-DEMO-EXE-00821", "NYA-DEMO-MISC-00608", "NYA-DEMO-APL-00940", "NYA-DEMO-GW-00118", "NYA-DL-DEMO-01982"],
     caseHistory: [
       { date: "2026-08-19", caseId: "NYA-DEMO-CIV-02031", summary: "Evidence hearing listed on the public cause list." },
-      { date: "2026-08-18", caseId: "NYA-DEMO-EXE-00714", summary: "Execution proceeding listed for further directions." },
-      { date: "2026-08-16", caseId: "NYA-DEMO-FAM-00451", summary: "Family petition listed for evidence." },
-      { date: "2026-08-13", caseId: "NYA-DEMO-APL-00940", summary: "Civil appeal listed for arguments." },
-      { date: "2026-08-11", caseId: "NYA-MH-DEMO-03318", summary: "Property suit noted for connected evidence." },
-      { date: "2026-08-07", caseId: "NYA-DL-DEMO-01982", summary: "Civil appeal status recorded on the docket." }
+      { date: "2026-08-18", caseId: "NYA-DEMO-EXE-00821", summary: "Execution notice to judgment-debtor listed." },
+      { date: "2026-08-16", caseId: "NYA-DEMO-MISC-00608", summary: "Miscellaneous amendment application notice listed." },
+      { date: "2026-08-13", caseId: "NYA-DEMO-APL-00940", summary: "Civil appeal listed for hearing." },
+      { date: "2026-08-11", caseId: "NYA-DEMO-GW-00118", summary: "Guardianship custody petition listed for hearing." },
+      { date: "2026-08-07", caseId: "NYA-DL-DEMO-01982", summary: "Civil appeal admission recorded." }
     ]
   },
   {
@@ -188,14 +188,14 @@ export const syntheticJudges: SyntheticJudge[] = [
       publicEnquiryPhone: "Not published — contact court registry",
       note: registryNote
     },
-    caseIds: ["NYA-DEMO-ARB-00386", "NYA-DEMO-COM-00890", "NYA-DEMO-EXE-00714", "NYA-DEMO-CIV-02031", "NYA-DL-DEMO-01982", "NYA-DEMO-APL-00940"],
+    caseIds: ["NYA-DEMO-ARB-00410", "NYA-DEMO-COM-00890", "NYA-DEMO-EXE-00905", "NYA-DEMO-ARB-00455", "NYA-DEMO-REV-00301", "NYA-DEMO-APL-00940"],
     caseHistory: [
-      { date: "2026-08-19", caseId: "NYA-DEMO-ARB-00386", summary: "Order reserved on the arbitration application." },
+      { date: "2026-08-19", caseId: "NYA-DEMO-ARB-00410", summary: "Section 9 arbitration application filed." },
       { date: "2026-08-17", caseId: "NYA-DEMO-COM-00890", summary: "Commercial suit listed for hearing." },
-      { date: "2026-08-14", caseId: "NYA-DEMO-EXE-00714", summary: "Execution proceeding listed for directions." },
-      { date: "2026-08-11", caseId: "NYA-DEMO-CIV-02031", summary: "Connected civil suit evidence noted." },
-      { date: "2026-08-08", caseId: "NYA-DL-DEMO-01982", summary: "Civil appeal listed for arguments." },
-      { date: "2026-08-05", caseId: "NYA-DEMO-APL-00940", summary: "Civil appeal status recorded on the docket." }
+      { date: "2026-08-14", caseId: "NYA-DEMO-EXE-00905", summary: "Execution process listed for attachment directions." },
+      { date: "2026-08-11", caseId: "NYA-DEMO-ARB-00455", summary: "Arbitration application listed for hearing." },
+      { date: "2026-08-08", caseId: "NYA-DEMO-REV-00301", summary: "Civil revision petition filed." },
+      { date: "2026-08-05", caseId: "NYA-DEMO-APL-00940", summary: "Civil appeal listed for hearing." }
     ]
   }
 ];

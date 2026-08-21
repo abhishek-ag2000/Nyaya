@@ -74,6 +74,7 @@ export default function UnifiedCaseWorkspace({ caseData: initialCase }: { caseDa
   const [caseData, setCaseData] = useState(initialCase);
   const [role, setRole] = useState<Role | null>(null);
   const reduceMotion = useReducedMotion();
+  const tabsRef = useRef<HTMLElement>(null);
   const highlightedDocumentId = searchParams.get("newDocument");
   useEffect(() => { const refresh = () => setRole(getMockRole()); refresh(); window.addEventListener("nyaya-mock-session", refresh); return () => window.removeEventListener("nyaya-mock-session", refresh); }, []);
   useEffect(() => {
@@ -81,6 +82,10 @@ export default function UnifiedCaseWorkspace({ caseData: initialCase }: { caseDa
     const match = resolveWorkspaceTab(requestedTab);
     if (match) setTab(match);
   }, [initialCase, requestedTab]);
+  useEffect(() => {
+    const active = tabsRef.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+    active?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest", inline: "nearest" });
+  }, [tab, reduceMotion]);
   const openActions = useMemo(() => caseData.actionsRequired.filter((action) => action.status === "open" || action.status === "requested" || action.status === "issued" || action.status === "assigned" || action.status === "attempted" || action.status === "clarification-requested").sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority]), [caseData.actionsRequired]);
   const showPracticeActions = role === "advocate";
   const filedRows = useMemo(() => filedDocumentRows(caseData).filter((row) => row.title.toLowerCase().includes(search.toLowerCase()) || row.type.toLowerCase().includes(search.toLowerCase()) || row.status.toLowerCase().includes(search.toLowerCase())), [caseData, search]);
@@ -124,7 +129,7 @@ export default function UnifiedCaseWorkspace({ caseData: initialCase }: { caseDa
       <AlertTriangle aria-hidden="true" /><div><span>{openActions.length} item{openActions.length === 1 ? "" : "s"} need{openActions.length === 1 ? "s" : ""} your attention</span><b>{currentAction.title}</b><p>{currentAction.description}{currentAction.dueDate ? ` Due ${dateLabel(currentAction.dueDate)}.` : ""}</p></div>
       <Link href={actionHref(caseData.id, currentAction)}>Review item <ChevronRight aria-hidden="true" /></Link>
     </section> : <section className="case-attention clear" aria-label="No immediate action required"><CheckCircle2 aria-hidden="true" /><div><b>No immediate action required</b><p>There are no open actions in this case record.</p></div></section>)}
-    <nav className="unified-tabs" aria-label="Case workspace sections" role="tablist">{workspaceTabs.map((item) => <button aria-controls="case-workspace-panel" aria-selected={tab === item} className={tab === item ? "active" : ""} key={item} onClick={() => setTab(item)} role="tab">{item}</button>)}</nav>
+    <nav ref={tabsRef} className="unified-tabs" aria-label="Case workspace sections" role="tablist">{workspaceTabs.map((item) => <button aria-controls="case-workspace-panel" aria-selected={tab === item} className={tab === item ? "active" : ""} key={item} onClick={() => setTab(item)} role="tab" type="button">{item}</button>)}</nav>
     <div className="case-shell"><main aria-label={`${tab} for ${caseData.shortTitle}`} id="case-workspace-panel" role="tabpanel"><AnimatePresence mode="wait">
       {tab === "Overview" && <motion.div key="overview" {...panel}><Overview caseData={caseData} onOpenTimeline={() => setTab("Timeline")} onOpenOrders={() => setTab("Orders")} /></motion.div>}
       {tab === "Status" && <motion.div key="status" {...panel}><CaseStatusTracker caseData={caseData} onCaseChange={setCaseData} /></motion.div>}

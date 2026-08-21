@@ -1,5 +1,6 @@
 import { getHearingsForCase } from "@/data/hearings";
 import type { UnifiedCase } from "@/data/unified-case";
+import { dedupeCaseHistory } from "@/lib/resolve-procedural-stage";
 
 export type CaseExportSection = { heading: string; lines: string[] };
 
@@ -83,7 +84,7 @@ export function buildCaseExportSections(caseData: UnifiedCase): CaseExportSectio
   if (caseData.caseHistory?.length) {
     sections.push({
       heading: "Case history",
-      lines: caseData.caseHistory.map(
+      lines: dedupeCaseHistory(caseData.caseHistory).map(
         (row) => `${dateLabel(row.businessDate)} · Judge ${row.judge} · Next ${dateLabel(row.nextHearingDate)} · ${row.purpose}`
       ),
     });
@@ -170,9 +171,7 @@ export function buildCasePdfBytes(caseData: UnifiedCase): Uint8Array {
   const marginX = 54;
   const marginTop = 54;
   const marginBottom = 54;
-  const contentWidth = pageWidth - marginX * 2;
   const maxChars = 92;
-  const lineHeight = 13;
   const sections = buildCaseExportSections(caseData);
 
   type PageLine = { text: string; size: number; gapAfter: number };

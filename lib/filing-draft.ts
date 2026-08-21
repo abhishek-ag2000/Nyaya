@@ -102,3 +102,34 @@ export function forumValue(categoryId: string, claimValue: string, offenceClass:
 export function suggestedForumFor(categoryId: string, subtypeId: string, claimValue: string, offenceClass: string) {
   return getSuggestedForum(categoryId, subtypeId, forumValue(categoryId, claimValue, offenceClass));
 }
+
+/** Parse the first N year(s)|month(s)|day(s) from a category limitationReference string. */
+export function parseIllustrativeLimitation(reference: string): { amount: number; unit: "year" | "month" | "day"; days: number } | null {
+  const match = reference.match(/(\d+)\s*[-–]?\s*(?:to\s*)?(\d+)?\s*(year|month|day)s?/i);
+  if (!match) return null;
+  const amount = Number(match[1]);
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  const unit = match[3].toLowerCase() as "year" | "month" | "day";
+  const days = unit === "year" ? amount * 365 : unit === "month" ? amount * 30 : amount;
+  return { amount, unit, days };
+}
+
+/** Hedged limitation badge for the filing wizard — never an unqualified legal determination. */
+export function illustrativeLimitationLabel(earliestDate: string, limitationReference: string, todayIso: string): string | null {
+  if (!earliestDate) return null;
+  const parsed = parseIllustrativeLimitation(limitationReference);
+  if (!parsed) {
+    return "Limitation for this category is case-specific — illustrative, verify applicable rules.";
+  }
+  const start = new Date(`${earliestDate}T00:00:00`);
+  const today = new Date(`${todayIso}T00:00:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(today.getTime())) {
+    return "Limitation for this category is case-specific — illustrative, verify applicable rules.";
+  }
+  const daysElapsed = Math.floor((today.getTime() - start.getTime()) / 86400000);
+  const unitLabel = `${parsed.amount} ${parsed.unit}${parsed.amount === 1 ? "" : "s"}`;
+  if (daysElapsed <= parsed.days) {
+    return `Within illustrative ${unitLabel} limitation reference for this category — verify applicable rules.`;
+  }
+  return `Outside illustrative ${unitLabel} limitation reference for this category — verify applicable rules.`;
+}

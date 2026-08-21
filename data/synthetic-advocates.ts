@@ -37,14 +37,14 @@ export const syntheticAdvocates: SyntheticAdvocate[] = [
     identityVerified: true,
     registrationStatus: "Registration recorded",
     documentReview: "document review complete",
-    caseIds: ["NYA-WB-DEMO-04821", "NYA-DEMO-CRM-00109", "NYA-DEMO-BAIL-01122", "NYA-WB-DEMO-05510", "NYA-DEMO-MISC-00612", "NYA-KA-DEMO-01247"],
+    caseIds: ["NYA-WB-DEMO-04821", "NYA-DEMO-CRM-00109", "NYA-DEMO-BAIL-01122", "NYA-WB-DEMO-05510", "NYA-DEMO-GW-00101", "NYA-DEMO-CRA-00201"],
     caseRoles: {
       "NYA-WB-DEMO-04821": "Counsel for Petitioner",
       "NYA-DEMO-CRM-00109": "Counsel for Respondent",
       "NYA-DEMO-BAIL-01122": "Counsel for Petitioner",
       "NYA-WB-DEMO-05510": "Counsel for Petitioner",
-      "NYA-DEMO-MISC-00612": "Counsel for Petitioner",
-      "NYA-KA-DEMO-01247": "Counsel for Respondent"
+      "NYA-DEMO-GW-00101": "Counsel for Petitioner",
+      "NYA-DEMO-CRA-00201": "Counsel for Respondent"
     }
   },
   {
@@ -62,13 +62,13 @@ export const syntheticAdvocates: SyntheticAdvocate[] = [
     identityVerified: true,
     registrationStatus: "Registration recorded",
     documentReview: "document review complete",
-    caseIds: ["NYA-DEMO-CIV-02031", "NYA-DEMO-EXE-00714", "NYA-DEMO-FAM-00451", "NYA-DEMO-APL-00940", "NYA-MH-DEMO-03318", "NYA-DL-DEMO-01982"],
+    caseIds: ["NYA-DEMO-CIV-02031", "NYA-DEMO-EXE-00821", "NYA-DEMO-MISC-00601", "NYA-DEMO-APL-00940", "NYA-DEMO-GW-00118", "NYA-DL-DEMO-01982"],
     caseRoles: {
       "NYA-DEMO-CIV-02031": "Counsel for Petitioner",
-      "NYA-DEMO-EXE-00714": "Counsel for Respondent",
-      "NYA-DEMO-FAM-00451": "Counsel for Petitioner",
+      "NYA-DEMO-EXE-00821": "Counsel for Respondent",
+      "NYA-DEMO-MISC-00601": "Counsel for Petitioner",
       "NYA-DEMO-APL-00940": "Counsel for Petitioner",
-      "NYA-MH-DEMO-03318": "Counsel for Respondent",
+      "NYA-DEMO-GW-00118": "Counsel for Petitioner",
       "NYA-DL-DEMO-01982": "Counsel for Petitioner"
     }
   },

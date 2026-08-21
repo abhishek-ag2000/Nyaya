@@ -1,5 +1,5 @@
 import { getCaseCategory, type CaseCategoryId } from "@/data/case-categories";
-import { findStageDescription, getProceduralMap } from "@/data/procedural-stages";
+import { getProceduralMap } from "@/data/procedural-stages";
 
 export const FORUM_GUIDANCE_LABEL = "Illustrative forum guidance — actual pecuniary limits are set by state governments and change periodically; confirm current limits for your state.";
 export const STAGE_SEQUENCE_LABEL = "Illustrative procedural sequence for this class of proceeding — not the actual order or history of this case. Actual stages, order, and duration vary by court, state, and case specifics.";
@@ -16,10 +16,6 @@ export type SuggestedForum = {
 export function getStageMap(category: string, subtype = ""): string[] {
   const id = getCaseCategory(category)?.id ?? category;
   return getProceduralMap({ categoryId: id, caseType: category, caseCategory: category, subtype }).stages.map((item) => item.title);
-}
-
-export function getStageDescription(stage: string) {
-  return findStageDescription(stage);
 }
 
 export function getSuggestedForum(category: string, subtype = "", value?: number | string): SuggestedForum {
@@ -66,6 +62,15 @@ export function getSuggestedForum(category: string, subtype = "", value?: number
       hierarchy: "criminal",
       provision: "BNSS — appeals from magistrate’s judgments ordinarily lie to the Court of Session",
       rationale: "A criminal appeal from a magistrate is typically presented to the Sessions Court, not as an original complaint."
+    };
+  }
+
+  if (id === "civil-appeal") {
+    return {
+      courtLevel: "District Judge / Additional District Judge (appellate)",
+      hierarchy: "civil",
+      provision: "CPC ss.96–112 / Order XLI — appeals from decrees and appealable orders (illustrative)",
+      rationale: "A first appeal from a subordinate civil court ordinarily lies to the District Court, subject to the state’s appellate structure."
     };
   }
 

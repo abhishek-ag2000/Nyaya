@@ -3,6 +3,7 @@
 import { CheckCircle2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { advanceCaseStage } from "@/data/demo-case-store";
+import { STAGE_SEQUENCE_LABEL } from "@/data/forum-and-stages";
 import type { UnifiedCase } from "@/data/unified-case";
 import { resolveProceduralStage } from "@/lib/resolve-procedural-stage";
 
@@ -23,6 +24,7 @@ export default function CaseStatusTracker({ caseData, onCaseChange }: { caseData
     <section className="case-panel">
       <span className="eyebrow">{resolution.map.source ?? "Procedural stages"}</span>
       <h2 className="tab-section-title">{resolution.map.label}</h2>
+      <p className="legal-disclosure">{STAGE_SEQUENCE_LABEL}</p>
       <ol className="stage-flow">
         {map.map((stage, index) => {
           const completed = resolution.completedStageIds.includes(stage.id);

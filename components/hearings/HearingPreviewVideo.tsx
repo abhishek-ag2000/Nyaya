@@ -58,8 +58,7 @@ export default function HearingPreviewVideo({
     <div className="hearing-preview-video">
       {failed ? (
         <div className="hearing-preview-missing">
-          <span>Demo video</span>
-          <small>Add MP4 under public/videos</small>
+          <span>Demo recording not available in this build</span>
         </div>
       ) : (
         <video

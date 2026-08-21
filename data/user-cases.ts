@@ -1,4 +1,6 @@
 import { getPendingActionWorkflow, getPendingActionWorkflows, getRecentCaseEvents, isActiveWorkflowStatus, listFiledCases, loadDemoCase, normalizeWorkflowStatus, type PendingActionAuditEntry, type PendingActionWorkflowStatus } from "@/data/demo-case-store";
+import type { CaseCategoryId } from "@/data/case-categories";
+import { getProceduralMap } from "@/data/procedural-stages";
 import type { Role } from "@/data/roles";
 import { demoUnifiedCase, type CaseAction, type CaseEvent, type UnifiedCase } from "@/data/unified-case";
 
@@ -21,12 +23,12 @@ export type PendingActionItem = {
   sourceActionId?: string;
 };
 
-const event = (caseId: string, date: string, title: string, type: CaseEvent["type"] = "status-changed"): CaseEvent => ({ id: `event-${caseId}`, caseId, type, occurredAt: date, title, description: "A case update.", plainLanguage: "This is a case update for Nyaya.", source: { type: "case" }, visibility: "case-users" });
+const event = (caseId: string, date: string, title: string, type: CaseEvent["type"] = "status-changed"): CaseEvent => ({ id: `event-${caseId}-${date}`, caseId, type, occurredAt: date, title, description: "A case update.", plainLanguage: "This is a case update for Nyaya.", source: { type: "case" }, visibility: "case-users" });
 function seedDocuments(caseId: string, stage: string): Pick<UnifiedCase, "documents" | "orders" | "filings"> {
   const filingId = `filing-${caseId}`;
   const applicationId = `doc-app-${caseId}`;
   const orderId = `doc-order-${caseId}`;
-  const showOrder = stage === "Order Reserved" || stage === "Arguments" || stage === "Evidence" || stage === "Hearing";
+  const showOrder = /order|arguments|evidence|hearing|judgment|satisfaction|execution process/i.test(stage);
   const documents = [
     {
       id: applicationId,
@@ -72,29 +74,289 @@ function seedDocuments(caseId: string, stage: string): Pick<UnifiedCase, "docume
     }],
   };
 }
-const makeCase = (id: string, title: string, caseType: string, stage: string, date: string, court: string, establishment: string, recentTitle: string, action?: CaseAction, context: { state: string; district: string; judge: string } = { state: "West Bengal", district: "Darjeeling", judge: "Presiding Judge Demo-04" }): UnifiedCase => ({
-  id, demo: true, title, shortTitle: title, caseType, caseCategory: caseType, court: { name: `${court}`, establishment, state: context.state, district: context.district, courtroom: "Court 2", judge: context.judge },
-  status: { label: stage === "Order Reserved" ? "Order Reserved" : "Hearing Scheduled", code: "demo", plainLanguage: "This matter is shown for dashboard demonstration only.", updatedAt: "2026-08-19" },
-  stage: { current: stage, completedStages: ["Filed", "Scrutiny", "Registered"], upcomingStages: ["Decision"] }, nextHearing: { date, time: "11:00 AM", purpose: stage === "Order Reserved" ? "Order awaited" : "Listed hearing", mode: "physical" },
-  parties: { petitioners: ["Demo Petitioner"], respondents: ["Demo Respondent"] }, advocates: { petitioner: ["Advocate Demo"], respondent: ["Counsel Demo"] },
-  notifications: [], actionsRequired: action ? [action] : [], events: [event(id, "2026-08-19", recentTitle)],
-  ...seedDocuments(id, stage),
-});
+
+type MakeCaseOpts = {
+  categoryId: CaseCategoryId;
+  petitioners?: string[];
+  respondents?: string[];
+  petitionerAdvocates?: string[];
+  respondentAdvocates?: string[];
+  action?: CaseAction;
+  context?: { state: string; district: string; judge: string; courtroom?: string };
+};
+
+const makeCase = (
+  id: string,
+  title: string,
+  caseType: string,
+  stage: string,
+  date: string,
+  court: string,
+  establishment: string,
+  recentTitle: string,
+  opts: MakeCaseOpts
+): UnifiedCase => {
+  const context = opts.context ?? { state: "West Bengal", district: "Darjeeling", judge: "Presiding Judge Demo-04" };
+  const procedural = getProceduralMap({ categoryId: opts.categoryId, caseType, caseCategory: caseType });
+  const map = procedural.stages.map((item) => item.title);
+  const stageIndex = Math.max(0, map.findIndex((titleItem) => titleItem.toLowerCase() === stage.toLowerCase()));
+  const resolvedIndex = stageIndex >= 0 ? stageIndex : 0;
+  const current = map[resolvedIndex] ?? stage;
+  return {
+    id,
+    demo: true,
+    title,
+    shortTitle: title,
+    caseType,
+    caseCategory: caseType,
+    categoryId: opts.categoryId,
+    court: {
+      name: court,
+      establishment,
+      state: context.state,
+      district: context.district,
+      courtroom: context.courtroom ?? "Court 2",
+      judge: context.judge,
+    },
+    status: {
+      label: /order reserved|judgment|satisfaction/i.test(current) ? current : "Hearing Scheduled",
+      code: "demo",
+      plainLanguage: "This matter is shown for dashboard demonstration only.",
+      updatedAt: "2026-08-19",
+    },
+    stage: {
+      current,
+      completedStages: map.slice(0, resolvedIndex),
+      upcomingStages: map.slice(resolvedIndex + 1),
+    },
+    stageMap: map,
+    stageIndex: resolvedIndex,
+    nextHearing: {
+      date,
+      time: "11:00 AM",
+      purpose: /order reserved|judgment/i.test(current) ? "Order awaited" : current,
+      mode: "physical",
+    },
+    parties: {
+      petitioners: opts.petitioners ?? ["Demo Petitioner"],
+      respondents: opts.respondents ?? ["Demo Respondent"],
+    },
+    advocates: {
+      petitioner: opts.petitionerAdvocates ?? ["Advocate Demo"],
+      respondent: opts.respondentAdvocates ?? ["Counsel Demo"],
+    },
+    notifications: [],
+    actionsRequired: opts.action ? [opts.action] : [],
+    events: [event(id, "2026-08-19", recentTitle)],
+    ...seedDocuments(id, current),
+  };
+};
 
 export const readOnlyDemoCases: UnifiedCase[] = [
-  makeCase("NYA-DEMO-CIV-02031", "Mehta Properties v. Arun Das", "Civil Suit", "Evidence", "2026-08-28", "Civil Court, Siliguri", "Siliguri Court Complex", "Evidence hearing listed"),
-  makeCase("NYA-DEMO-EXE-00714", "Demo Finance Ltd. v. R. Sen", "Execution Proceeding", "Execution Petition Filed", "2026-08-27", "District Court, Kolkata", "Kolkata Court Complex", "Certified copy review requested", { id: "action-certified-copy", title: "Review certified-copy requirement", description: "A procedural item needs review before the next listing.", status: "open", priority: "medium", dueDate: "2026-08-25", relatedDocumentId: "doc-app-NYA-DEMO-EXE-00714", relatedFilingId: "filing-NYA-DEMO-EXE-00714" }, { state: "West Bengal", district: "Kolkata", judge: "Presiding Judge Demo-04" }),
-  makeCase("NYA-DEMO-CRM-00109", "State v. Demo Accused", "Criminal Matter", "Arguments", "2026-09-02", "Sessions Court, Darjeeling", "Darjeeling Court Complex", "Arguments hearing confirmed"),
-  makeCase("NYA-DEMO-ARB-00386", "Eastern Demo Traders v. Northline Demo Pvt. Ltd.", "Arbitration Application", "Order Reserved", "2026-09-05", "Commercial Court, Kolkata", "Kolkata Court Complex", "Order awaited", undefined, { state: "West Bengal", district: "Kolkata", judge: "Presiding Judge Demo-04" }),
-  makeCase("NYA-DL-DEMO-01982", "Kapoor Demo Services v. Metro Demo Works", "Civil Appeal", "Arguments", "2026-09-08", "District & Sessions Court, Central Delhi", "Tees Hazari Courts", "Arguments hearing listed", undefined, { state: "Delhi", district: "Central Delhi", judge: "Presiding Judge Demo-05" }),
-  makeCase("NYA-KA-DEMO-01247", "State v. Demo Applicant", "Bail Matter", "Hearing", "2026-09-10", "Bengaluru Rural District & Sessions Court", "Bengaluru Rural District & Sessions Court", "Bail hearing listed", undefined, { state: "Karnataka", district: "Bengaluru Rural", judge: "Presiding Judge Demo-06" }),
-  makeCase("NYA-MH-DEMO-03318", "Demo Estates v. Kulkarni Demo", "Property Suit", "Evidence", "2026-09-12", "Nashik District & Sessions Court", "Nashik District & Sessions Court", "Evidence hearing listed", undefined, { state: "Maharashtra", district: "Nashik", judge: "Presiding Judge Demo-07" }),
-  makeCase("NYA-DEMO-BAIL-01122", "State v. Demo Bail Applicant", "Bail Application", "Hearing", "2026-08-21", "Sessions Court, Darjeeling", "Darjeeling Court Complex", "Bail application listed"),
-  makeCase("NYA-DEMO-MISC-00612", "In re Demo Miscellaneous", "Miscellaneous Application", "Hearing", "2026-08-22", "District & Sessions Court, Darjeeling", "Darjeeling Court Complex", "Miscellaneous application listed"),
-  makeCase("NYA-DEMO-FAM-00451", "Demo Petitioner v. Demo Respondent", "Family Petition", "Evidence", "2026-08-25", "Civil Court, Siliguri", "Siliguri Court Complex", "Family petition listed for evidence"),
-  makeCase("NYA-WB-DEMO-05510", "State v. Demo Revisionist", "Criminal Revision", "Arguments", "2026-09-01", "Sessions Court, Darjeeling", "Darjeeling Court Complex", "Criminal revision listed for arguments"),
-  makeCase("NYA-DEMO-COM-00890", "Harbor Demo Ltd. v. Delta Demo LLP", "Commercial Suit", "Hearing", "2026-09-04", "Commercial Court, Kolkata", "Kolkata Court Complex", "Commercial suit listed", undefined, { state: "West Bengal", district: "Kolkata", judge: "Presiding Judge Demo-08" }),
-  makeCase("NYA-DEMO-APL-00940", "Banerjee Demo v. Municipal Demo Board", "Civil Appeal", "Arguments", "2026-09-07", "District Court, Kolkata", "Kolkata Court Complex", "Civil appeal listed for arguments", undefined, { state: "West Bengal", district: "Kolkata", judge: "Presiding Judge Demo-05" })
+  // Civil Suit
+  makeCase("NYA-DEMO-CIV-02031", "Mehta Properties v. Arun Das", "Civil Suit", "Hearing & Examination", "2026-08-28", "Civil Court, Siliguri", "Siliguri Court Complex", "Evidence hearing listed", {
+    categoryId: "civil-suit",
+    petitioners: ["Mehta Properties Pvt. Ltd. (Demo)"],
+    respondents: ["Arun Das (Demo)"],
+    petitionerAdvocates: ["Adv. P. Banerjee (Demo)"],
+    context: { state: "West Bengal", district: "Darjeeling", judge: "Presiding Judge Demo-04", courtroom: "Court 2" },
+  }),
+  makeCase("NYA-MH-DEMO-03318", "Demo Estates v. Kulkarni Demo", "Civil Suit", "Framing of Issues", "2026-09-12", "Nashik District & Sessions Court", "Nashik District & Sessions Court", "Issues hearing listed", {
+    categoryId: "civil-suit",
+    petitioners: ["Demo Estates LLP"],
+    respondents: ["Kulkarni Demo"],
+    context: { state: "Maharashtra", district: "Nashik", judge: "Presiding Judge Demo-07", courtroom: "Court 1" },
+  }),
+  makeCase("NYA-DEMO-COM-00890", "Harbor Demo Ltd. v. Delta Demo LLP", "Civil Suit", "Appearance of Parties", "2026-09-04", "Commercial Court, Kolkata", "Kolkata Court Complex", "Commercial suit listed", {
+    categoryId: "civil-suit",
+    petitioners: ["Harbor Demo Ltd."],
+    respondents: ["Delta Demo LLP"],
+    context: { state: "West Bengal", district: "Kolkata", judge: "Presiding Judge Demo-08", courtroom: "Court 3" },
+  }),
+  makeCase("NYA-DEMO-FAM-00451", "Sengupta Demo v. Bose Demo", "Civil Suit", "Written Statement", "2026-08-25", "Civil Court, Siliguri", "Siliguri Court Complex", "Family petition listed for written statement", {
+    categoryId: "civil-suit",
+    petitioners: ["Sengupta Demo"],
+    respondents: ["Bose Demo"],
+    context: { state: "West Bengal", district: "Darjeeling", judge: "Presiding Judge Demo-04" },
+  }),
+  makeCase("NYA-DEMO-CIV-LIVE-551", "Demo Landlord v. Demo Tenant", "Civil Suit", "Hearing & Examination", "2026-08-20", "Civil Court, Siliguri", "Siliguri Court Complex", "Live civil listing", {
+    categoryId: "civil-suit",
+    petitioners: ["Demo Landlord"],
+    respondents: ["Demo Tenant"],
+    context: { state: "West Bengal", district: "Darjeeling", judge: "Presiding Judge Demo-04", courtroom: "Court 4" },
+  }),
+  makeCase("NYA-DEMO-COM-LIVE-312", "Orbit Demo Pvt. Ltd. v. Horizon Demo Traders", "Civil Suit", "Hearing & Examination", "2026-08-20", "Commercial Court, Kolkata", "Kolkata Court Complex", "Live commercial listing", {
+    categoryId: "civil-suit",
+    petitioners: ["Orbit Demo Pvt. Ltd."],
+    respondents: ["Horizon Demo Traders"],
+    context: { state: "West Bengal", district: "Kolkata", judge: "Presiding Judge Demo-08", courtroom: "Court 2" },
+  }),
+  makeCase("NYA-MH-DEMO-LIVE-1188", "Patil Demo Farms v. Demo Co-op Bank", "Civil Suit", "Hearing & Examination", "2026-08-20", "Nashik District & Sessions Court", "Nashik District & Sessions Court", "Live property listing", {
+    categoryId: "civil-suit",
+    petitioners: ["Patil Demo Farms"],
+    respondents: ["Demo Co-op Bank"],
+    context: { state: "Maharashtra", district: "Nashik", judge: "Presiding Judge Demo-07", courtroom: "Court 2" },
+  }),
+
+  // Criminal Case
+  makeCase("NYA-DEMO-CRM-00109", "State v. Demo Accused", "Criminal Case", "Arguments", "2026-09-02", "Sessions Court, Darjeeling", "Darjeeling Court Complex", "Arguments hearing confirmed", {
+    categoryId: "criminal-case",
+    petitioners: ["State of West Bengal"],
+    respondents: ["Demo Accused"],
+    petitionerAdvocates: ["Public Prosecutor (Demo)"],
+    respondentAdvocates: ["Adv. A. Sen"],
+    context: { state: "West Bengal", district: "Darjeeling", judge: "Presiding Judge Demo-03", courtroom: "Court 3" },
+  }),
+  makeCase("NYA-DEMO-BAIL-01122", "State v. Demo Bail Applicant", "Criminal Case", "Discharge / Plea", "2026-08-21", "Sessions Court, Darjeeling", "Darjeeling Court Complex", "Bail application listed", {
+    categoryId: "criminal-case",
+    petitioners: ["State of West Bengal"],
+    respondents: ["Demo Bail Applicant"],
+    context: { state: "West Bengal", district: "Darjeeling", judge: "Presiding Judge Demo-03" },
+  }),
+  makeCase("NYA-KA-DEMO-01247", "State v. Demo Applicant", "Criminal Case", "Framing of Charge", "2026-09-10", "Bengaluru Rural District & Sessions Court", "Bengaluru Rural District & Sessions Court", "Bail hearing listed", {
+    categoryId: "criminal-case",
+    petitioners: ["State of Karnataka"],
+    respondents: ["Demo Applicant"],
+    context: { state: "Karnataka", district: "Bengaluru Rural", judge: "Presiding Judge Demo-06", courtroom: "Court 4" },
+  }),
+  makeCase("NYA-WB-DEMO-LIVE-2204", "Demo Complainant v. State of West Bengal", "Criminal Case", "Prosecution Evidence", "2026-08-20", "Sessions Court, Darjeeling", "Darjeeling Court Complex", "Live criminal listing", {
+    categoryId: "criminal-case",
+    petitioners: ["Demo Complainant"],
+    respondents: ["State of West Bengal"],
+    context: { state: "West Bengal", district: "Darjeeling", judge: "Presiding Judge Demo-03", courtroom: "Court 3" },
+  }),
+
+  // Execution
+  makeCase("NYA-DEMO-EXE-00714", "Demo Finance Ltd. v. R. Sen", "Execution Petition", "Execution Petition Filed", "2026-08-27", "District Court, Kolkata", "Kolkata Court Complex", "Certified copy review requested", {
+    categoryId: "execution-petition",
+    petitioners: ["Demo Finance Ltd."],
+    respondents: ["R. Sen (Demo)"],
+    action: {
+      id: "action-certified-copy",
+      title: "Review certified-copy requirement",
+      description: "A procedural item needs review before the next listing.",
+      status: "open",
+      priority: "medium",
+      dueDate: "2026-08-25",
+      relatedDocumentId: "doc-app-NYA-DEMO-EXE-00714",
+      relatedFilingId: "filing-NYA-DEMO-EXE-00714",
+    },
+    context: { state: "West Bengal", district: "Kolkata", judge: "Presiding Judge Demo-04" },
+  }),
+  makeCase("NYA-DEMO-EXE-00821", "Siliguri Credit Demo v. Guha Demo", "Execution Petition", "Notice to Judgment-Debtor", "2026-09-03", "Civil Court, Siliguri", "Siliguri Court Complex", "JD notice listed", {
+    categoryId: "execution-petition",
+    petitioners: ["Siliguri Credit Demo Co."],
+    respondents: ["Guha Demo"],
+    context: { state: "West Bengal", district: "Darjeeling", judge: "Presiding Judge Demo-04" },
+  }),
+  makeCase("NYA-DEMO-EXE-00905", "North Bend Bank Demo v. Roy Demo", "Execution Petition", "Execution Process", "2026-09-11", "District Court, Kolkata", "Kolkata Court Complex", "Attachment process listed", {
+    categoryId: "execution-petition",
+    petitioners: ["North Bend Bank Demo"],
+    respondents: ["Roy Demo"],
+    context: { state: "West Bengal", district: "Kolkata", judge: "Presiding Judge Demo-05" },
+  }),
+
+  // Arbitration
+  makeCase("NYA-DEMO-ARB-00386", "Eastern Demo Traders v. Northline Demo Pvt. Ltd.", "Arbitration Application", "Order / Award on Application", "2026-09-05", "Commercial Court, Kolkata", "Kolkata Court Complex", "Order awaited", {
+    categoryId: "arbitration-case",
+    petitioners: ["Eastern Demo Traders"],
+    respondents: ["Northline Demo Pvt. Ltd."],
+    context: { state: "West Bengal", district: "Kolkata", judge: "Presiding Judge Demo-04" },
+  }),
+  makeCase("NYA-DEMO-ARB-00410", "Riverfront Demo Spices v. Coastline Demo Logistics", "Arbitration Application", "Application Filed (S.9 / S.34)", "2026-08-24", "Commercial Court, Kolkata", "Kolkata Court Complex", "Section 9 application filed", {
+    categoryId: "arbitration-case",
+    petitioners: ["Riverfront Demo Spices"],
+    respondents: ["Coastline Demo Logistics"],
+    context: { state: "West Bengal", district: "Kolkata", judge: "Presiding Judge Demo-08" },
+  }),
+  makeCase("NYA-DEMO-ARB-00455", "Teesta Demo Mills v. Valley Demo Packers", "Arbitration Application", "Hearing", "2026-09-09", "District Court, Kolkata", "Kolkata Court Complex", "Arbitration hearing listed", {
+    categoryId: "arbitration-case",
+    petitioners: ["Teesta Demo Mills"],
+    respondents: ["Valley Demo Packers"],
+    context: { state: "West Bengal", district: "Kolkata", judge: "Presiding Judge Demo-05" },
+  }),
+
+  // Criminal Appeal
+  makeCase("NYA-DEMO-CRA-00201", "State v. Mondal Demo Respondent", "Criminal Appeal", "Memorandum of Appeal Filed", "2026-08-29", "Sessions Court, Darjeeling", "Darjeeling Court Complex", "Criminal appeal filed", {
+    categoryId: "criminal-appeal",
+    petitioners: ["State of West Bengal"],
+    respondents: ["Mondal Demo Respondent"],
+    context: { state: "West Bengal", district: "Darjeeling", judge: "Presiding Judge Demo-03" },
+  }),
+  makeCase("NYA-DEMO-CRA-00244", "Biswas Demo Appellant v. State", "Criminal Appeal", "Hearing", "2026-09-06", "Sessions Court, Darjeeling", "Darjeeling Court Complex", "Criminal appeal hearing listed", {
+    categoryId: "criminal-appeal",
+    petitioners: ["Biswas Demo Appellant"],
+    respondents: ["State of West Bengal"],
+    context: { state: "West Bengal", district: "Darjeeling", judge: "Presiding Judge Demo-03" },
+  }),
+
+  // Miscellaneous Application — all 4 stages
+  makeCase("NYA-DEMO-MISC-00601", "In re Demo Stay Application", "Miscellaneous Application", "Application Filed", "2026-08-23", "District & Sessions Court, Darjeeling", "Darjeeling Court Complex", "Misc application filed", {
+    categoryId: "misc-application",
+    petitioners: ["Chhetri Demo Applicant"],
+    respondents: ["Lama Demo Opposite Party"],
+    context: { state: "West Bengal", district: "Darjeeling", judge: "Presiding Judge Demo-03" },
+  }),
+  makeCase("NYA-DEMO-MISC-00608", "In re Demo Amendment IA", "Miscellaneous Application", "Notice (if required)", "2026-08-26", "Civil Court, Siliguri", "Siliguri Court Complex", "Misc notice listed", {
+    categoryId: "misc-application",
+    petitioners: ["Tamang Demo Applicant"],
+    respondents: ["Rai Demo Opposite Party"],
+    context: { state: "West Bengal", district: "Darjeeling", judge: "Presiding Judge Demo-04" },
+  }),
+  makeCase("NYA-DEMO-MISC-00612", "In re Demo Miscellaneous", "Miscellaneous Application", "Hearing", "2026-08-22", "District & Sessions Court, Darjeeling", "Darjeeling Court Complex", "Miscellaneous application listed", {
+    categoryId: "misc-application",
+    petitioners: ["Thapa Demo Applicant"],
+    respondents: ["Gurung Demo Opposite Party"],
+    context: { state: "West Bengal", district: "Darjeeling", judge: "Presiding Judge Demo-03" },
+  }),
+  makeCase("NYA-DEMO-MISC-00630", "In re Demo Restoration", "Miscellaneous Application", "Order", "2026-09-01", "Civil Court, Siliguri", "Siliguri Court Complex", "Misc order reserved", {
+    categoryId: "misc-application",
+    petitioners: ["Pradhan Demo Applicant"],
+    respondents: ["Sherpa Demo Opposite Party"],
+    context: { state: "West Bengal", district: "Darjeeling", judge: "Presiding Judge Demo-04" },
+  }),
+
+  // Guardianship
+  makeCase("NYA-DEMO-GW-00101", "In re Minor Demo Child (Guardianship)", "Guardianship Petition", "Petition Filed", "2026-08-30", "District & Sessions Court, Darjeeling", "Darjeeling Court Complex", "Guardianship petition filed", {
+    categoryId: "guardianship-case",
+    petitioners: ["Ananya Sharma Demo"],
+    respondents: ["Vikram Sharma Demo"],
+    context: { state: "West Bengal", district: "Darjeeling", judge: "Presiding Judge Demo-03" },
+  }),
+  makeCase("NYA-DEMO-GW-00118", "In re Custody of Minor Demo", "Guardianship Petition", "Hearing", "2026-09-08", "District Court, Kolkata", "Kolkata Court Complex", "Guardianship hearing listed", {
+    categoryId: "guardianship-case",
+    petitioners: ["Priya Banerjee Demo"],
+    respondents: ["Amit Banerjee Demo"],
+    context: { state: "West Bengal", district: "Kolkata", judge: "Presiding Judge Demo-05" },
+  }),
+
+  // Revision
+  makeCase("NYA-WB-DEMO-05510", "State v. Demo Revisionist", "Revision Petition", "Hearing", "2026-09-01", "Sessions Court, Darjeeling", "Darjeeling Court Complex", "Criminal revision listed for arguments", {
+    categoryId: "revision-petition",
+    petitioners: ["State of West Bengal"],
+    respondents: ["Demo Revisionist"],
+    context: { state: "West Bengal", district: "Darjeeling", judge: "Presiding Judge Demo-03" },
+  }),
+  makeCase("NYA-DEMO-REV-00301", "Dutta Demo v. Municipal Demo Board", "Revision Petition", "Revision Petition Filed", "2026-08-28", "District Court, Kolkata", "Kolkata Court Complex", "Civil revision filed", {
+    categoryId: "revision-petition",
+    petitioners: ["Dutta Demo"],
+    respondents: ["Municipal Demo Board"],
+    context: { state: "West Bengal", district: "Kolkata", judge: "Presiding Judge Demo-05" },
+  }),
+
+  // Civil Appeal
+  makeCase("NYA-DL-DEMO-01982", "Kapoor Demo Services v. Metro Demo Works", "Civil Appeal", "Admission / Preliminary Hearing", "2026-09-08", "District & Sessions Court, Central Delhi", "Tees Hazari Courts", "Civil appeal admission listed", {
+    categoryId: "civil-appeal",
+    petitioners: ["Kapoor Demo Services"],
+    respondents: ["Metro Demo Works"],
+    context: { state: "Delhi", district: "Central Delhi", judge: "Presiding Judge Demo-05", courtroom: "Court 5" },
+  }),
+  makeCase("NYA-DEMO-APL-00940", "Banerjee Demo v. Municipal Demo Board", "Civil Appeal", "Hearing of Appeal", "2026-09-07", "District Court, Kolkata", "Kolkata Court Complex", "Civil appeal listed for arguments", {
+    categoryId: "civil-appeal",
+    petitioners: ["Banerjee Demo"],
+    respondents: ["Municipal Demo Board"],
+    context: { state: "West Bengal", district: "Kolkata", judge: "Presiding Judge Demo-05" },
+  }),
 ];
 
 /** Resolve any bundled demo case for public case/document routes (no sign-in required). */
@@ -268,7 +530,7 @@ export function getPendingActionsForRole(role: Role, cases = getUserCases()): Pe
   }
 
   if (role === "judge") {
-    for (const caseData of cases.filter((item) => item.stage.current === "Order Reserved")) {
+    for (const caseData of cases.filter((item) => /order reserved|order \/ award/i.test(item.stage.current))) {
       const document = resolveOrderDocument(caseData);
       items.push(withWorkflow({
         id: `order-pending-${caseData.id}`,

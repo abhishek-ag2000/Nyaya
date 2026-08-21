@@ -7,7 +7,8 @@ export type CaseCategoryId =
   | "criminal-appeal"
   | "misc-application"
   | "guardianship-case"
-  | "revision-petition";
+  | "revision-petition"
+  | "civil-appeal";
 
 export type CaseSubtype = { id: string; label: string; note?: string };
 export type CaseCategory = {
@@ -51,11 +52,12 @@ export const caseCategories: CaseCategory[] = [
       "Costs of the suit under Section 35 CPC"
     ],
     requiredDocuments: [
-      "Original Plaint verified on Oath (Signed PDF)",
-      "Master Freight Transport Agreement (Annexure P-1)",
-      "Invoices & Ledger Statement of Accounts (Annexure P-2)",
-      "Statutory Legal Demand Notice dated 15.12.2025 (Annexure P-3)",
-      "Vakalatnama duly executed & stamped with Delhi Advocates Welfare Stamp"
+      "Plaint",
+      "Affidavit",
+      "Vakalatnama",
+      "Court Fee Receipt",
+      "Memo of Parties",
+      "Supporting Evidence / Annexures"
     ],
     limitationReference: "Limitation Act, Art. 113 (illustrative) — 3 years from when the right to sue accrues. Confirm the applicable article, exclusions, and condonation provisions.",
     nomenclature: [
@@ -159,7 +161,7 @@ export const caseCategories: CaseCategory[] = [
     nature: "criminal",
     roman: "V",
     code: "CRL.A",
-    statute: "Bharatiya Nagarik Suraksha Sanhita, 2023 — Chapter XXIX",
+    statute: "Bharatiya Nagarik Suraksha Sanhita, 2023 (corresponding to CrPC Sections 372–394 — Appeals)",
     summary: "Appeal from a magistrate’s judgment to the Sessions Court, or as otherwise provided by the BNSS.",
     partyLabels: { first: "Appellant", opposite: "Respondent" },
     subtypes: [
@@ -268,21 +270,45 @@ export const caseCategories: CaseCategory[] = [
       { state: "Maharashtra", name: "Civil Revision Application" },
       { state: "Tamil Nadu", name: "C.R.P. / Crl.R.C." }
     ]
+  },
+  {
+    id: "civil-appeal",
+    label: "Civil Appeal",
+    nature: "civil",
+    roman: "IX",
+    code: "FA / SA",
+    statute: "Code of Civil Procedure, 1908 — Sections 96–112 / Order XLI",
+    summary: "First or further appeal from a decree or appealable order of a subordinate civil court.",
+    partyLabels: { first: "Appellant", opposite: "Respondent" },
+    subtypes: [
+      { id: "first-appeal", label: "First appeal from decree" },
+      { id: "order-appeal", label: "Appeal from order" },
+      { id: "second-appeal", label: "Second appeal (where provided)" }
+    ],
+    typicalReliefs: [
+      "Set aside the decree / order under appeal",
+      "Modify the decree / order",
+      "Remand the matter for fresh trial",
+      "Stay execution of the decree pending the appeal"
+    ],
+    requiredDocuments: [
+      "Memorandum of appeal",
+      "Certified copy of the decree / order",
+      "Certified copy of the judgment",
+      "Vakalatnama",
+      "Copies for the respondent",
+      "Application for stay / condonation if sought"
+    ],
+    limitationReference: "Limitation Act, Art. 116 (illustrative) — often 90 days for appeals to a court other than a High Court. Confirm the applicable article, starting point, and condonation.",
+    nomenclature: [
+      { state: "West Bengal", name: "Title Appeal / Money Appeal" },
+      { state: "Delhi", name: "RFA / FAO" },
+      { state: "Maharashtra", name: "First Appeal / Regular Civil Appeal" },
+      { state: "Tamil Nadu", name: "A.S. / C.M.A." }
+    ]
   }
 ];
 
 export function getCaseCategory(id: string | undefined | null) {
   return caseCategories.find((item) => item.id === id);
-}
-
-export function categoryIdFromLabels(caseType: string, caseCategory: string): CaseCategoryId {
-  const haystack = `${caseType} ${caseCategory}`.toLowerCase();
-  if (haystack.includes("execution")) return "execution-petition";
-  if (haystack.includes("arbit")) return "arbitration-case";
-  if (haystack.includes("guardian")) return "guardianship-case";
-  if (haystack.includes("revision")) return "revision-petition";
-  if (haystack.includes("appeal") && haystack.includes("criminal")) return "criminal-appeal";
-  if (haystack.includes("misc") || haystack.includes("application") || haystack.includes("bail")) return haystack.includes("criminal") || haystack.includes("bail") ? "criminal-case" : "misc-application";
-  if (haystack.includes("criminal") || haystack.includes("sessions") || haystack.includes("fir")) return "criminal-case";
-  return "civil-suit";
 }

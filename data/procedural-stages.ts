@@ -173,6 +173,20 @@ export function normalizeStageText(value: string) {
 }
 
 export function selectProceduralMapId(input: ProceduralMapInput): ProceduralMapId {
+  const categoryId = input.categoryId;
+  if (categoryId === "civil-suit") return "civil-suit";
+  if (categoryId === "civil-appeal") return "civil-appeal";
+  if (categoryId === "execution-petition") return "execution-petition";
+  if (categoryId === "arbitration-case") return "arbitration-case";
+  if (categoryId === "criminal-appeal") return "criminal-appeal";
+  if (categoryId === "misc-application") return "misc-application";
+  if (categoryId === "guardianship-case") return "guardianship-case";
+  if (categoryId === "revision-petition") return "revision-petition";
+  if (categoryId === "criminal-case") {
+    if (input.subtype === "complaint" || `${input.subtype ?? ""}`.toLowerCase().includes("complaint")) return "criminal-complaint";
+    return "criminal-trial";
+  }
+
   const haystack = `${input.categoryId ?? ""} ${input.caseType ?? ""} ${input.caseCategory ?? ""} ${input.subtype ?? ""}`.toLowerCase();
   if (haystack.includes("execution") || haystack.includes("darkhast")) return "execution-petition";
   if (haystack.includes("arbit")) return "arbitration-case";

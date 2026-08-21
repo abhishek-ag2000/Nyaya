@@ -93,10 +93,8 @@ export default function HearingVideo({
       <div className="hearing-video-stage" ref={stageRef}>
         {failed ? (
           <div className="hearing-video-missing" role="status">
-            <p>Demo stream unavailable</p>
-            <small>
-              Place an MP4 at <code>{experience.source}</code> under <code>public/videos/</code> to play this hearing.
-            </small>
+            <p>Demo recording not available in this build</p>
+            <small>Virtual hearing playback is illustrative only for this prototype.</small>
           </div>
         ) : (
           <video
