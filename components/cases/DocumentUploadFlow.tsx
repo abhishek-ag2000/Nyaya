@@ -3,6 +3,7 @@
 import { CheckCircle2, ChevronRight, FileText, Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { BackArrowIcon } from "@/components/BackLink";
 import { addDocumentToDemoCase } from "@/data/demo-case-store";
 import type { DocumentIntakeResult, UnifiedCase } from "@/data/unified-case";
 
@@ -36,7 +37,7 @@ export default function DocumentUploadFlow({ caseData }: { caseData: UnifiedCase
   function addToCase() { if (!intake || !syntheticConfirmed) return; const id = `doc-intake-${Date.now().toString(36)}`; addDocumentToDemoCase(caseData.id, { id, title: fields.title.trim() || "Untitled demo document", category: categoryFor(fields.documentType), subtype: intake.filingType, date: fields.date, pages: Math.max(1, Number(fields.pages) || 1), addedBy: fields.addedBy.trim() || "User", source: "upload", intake: { ...intake, documentType: fields.documentType, documentTitle: fields.title.trim() || "Untitled demo document", pageCount: Math.max(1, Number(fields.pages) || 1) } }, caseData); router.push(`/cases/${caseData.id}?tab=documents&newDocument=${id}`); }
 
   return <main className="wrap intake-page">
-    <button className="back-link" onClick={() => router.push(`/cases/${caseData.id}`)}>← Back to case</button>
+    <button className="back-link" onClick={() => router.push(`/cases/${caseData.id}`)} type="button"><BackArrowIcon /> Back to case</button>
     <header className="intake-header"><span className="demo-pill">Demo workflow</span><p className="kicker">Add document</p><h1>Add a document to this case</h1><p>{caseData.title}<br /><code>{caseData.id}</code></p></header>
     <p className="intake-safety">Use demo files only. This workflow does not send, retain, or read the contents of your selected file.</p>
     {step === "select" && <section className="intake-card"><span className="eyebrow">Select document</span><div className="file-select"><FileText aria-hidden="true" /><h2>Drop a PDF here</h2><p>or choose a local PDF to run through the deterministic demo intake.</p><input accept="application/pdf,.pdf" aria-describedby="file-help" className="sr-only" id="case-document-file" onChange={(event) => chooseFile(event.target.files?.[0])} ref={inputRef} type="file" /><label className="small-action" htmlFor="case-document-file"><Upload aria-hidden="true" /> Choose file</label><small id="file-help">PDF recommended · Maximum demo size: 10 MB</small></div>{error && <div className="intake-error" role="alert"><X aria-hidden="true" /><div><b>Document not ready for demo intake</b><p>{error}</p><button onClick={continueManually}>Continue manually →</button></div></div>}<div className="demo-filing"><div><b>No document available?</b><p>Use the included demo filing to show the full workflow.</p><a href="/demo/demo-interim-relief-application.pdf" target="_blank" rel="noreferrer">Preview demo PDF ↗</a></div><button onClick={() => beginProcessing("demo-interim-relief-application.pdf")}>Use demo filing <ChevronRight aria-hidden="true" /></button></div></section>}

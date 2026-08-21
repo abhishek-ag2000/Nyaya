@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FileSearch, Gavel, ListChecks, MapPin, Scale, ScrollText, Search, UsersRound } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
-import { caseTypeGroups, finderAdvocates, finderJudges, type FinderPerson } from "@/data/find-case-fixture";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { BackLink } from "@/components/BackLink";
+import { caseTypeGroups, findCaseDefaults, finderAdvocates, finderJudges, type FinderPerson } from "@/data/find-case-fixture";
 import { getUserCases } from "@/data/user-cases";
 import type { UnifiedCase } from "@/data/unified-case";
 
 type Mode = "cnr" | "status" | "advocate" | "judge" | "orders" | "cause-list" | "caveat";
 type Disposition = "pending" | "disposed" | "both";
+type SearchDefaults = { query: string; year: string; caseType: string; person: string; disposition: Disposition };
 const modes: { id: Mode; label: string; icon: typeof Search }[] = [
   { id: "cnr", label: "CNR / Case ID", icon: Search },
   { id: "status", label: "Case Status", icon: FileSearch },
@@ -30,20 +32,45 @@ const copy: Record<Mode, [string, string]> = {
 };
 const unique = (items: string[]) => Array.from(new Set(items)).sort((a, b) => a.localeCompare(b));
 const dispositionFor = (item: UnifiedCase): Exclude<Disposition, "both"> => item.id === "NYA-MH-DEMO-03318" ? "disposed" : "pending";
+function matchesCaseFilters(item: UnifiedCase, year: string, caseType: string, disposition: Disposition) {
+  return (!year || item.nextHearing.date.startsWith(year)) && (!caseType || item.caseType === caseType) && (disposition === "both" || dispositionFor(item) === disposition);
+}
+function searchDefaultsFor(mode: Mode): SearchDefaults {
+  if (mode === "cnr") return { query: findCaseDefaults.cnr, year: "", caseType: "", person: "", disposition: "both" };
+  if (mode === "status") return { query: findCaseDefaults.party, year: findCaseDefaults.year, caseType: findCaseDefaults.caseType, person: "", disposition: "both" };
+  if (mode === "advocate") return { query: "", year: findCaseDefaults.year, caseType: findCaseDefaults.caseType, person: findCaseDefaults.advocate, disposition: "both" };
+  if (mode === "judge") return { query: "", year: findCaseDefaults.year, caseType: findCaseDefaults.caseType, person: findCaseDefaults.judge, disposition: "both" };
+  if (mode === "orders" || mode === "cause-list" || mode === "caveat") {
+    return { query: "", year: findCaseDefaults.year, caseType: findCaseDefaults.caseType, person: "", disposition: "both" };
+  }
+  return { query: "", year: "", caseType: "", person: "", disposition: "both" };
+}
+
+function locationFromParams(params: URLSearchParams) {
+  return {
+    state: params.get("state") ?? findCaseDefaults.state,
+    district: params.get("district") ?? findCaseDefaults.district,
+    court: params.get("court") ?? findCaseDefaults.court,
+  };
+}
 
 export default function FindCasePage() {
   const router = useRouter();
-  const requested = useSearchParams().get("mode") as Mode | null;
-  const mode = modes.some((item) => item.id === requested) ? requested as Mode : "cnr";
+  const searchParams = useSearchParams();
+  const requested = searchParams.get("mode") as Mode | null;
+  const initialMode = modes.some((item) => item.id === requested) ? requested as Mode : "cnr";
   const cases = useMemo(() => getUserCases(), []);
-  const [state, setState] = useState("");
-  const [district, setDistrict] = useState("");
-  const [court, setCourt] = useState("");
-  const [query, setQuery] = useState("");
-  const [year, setYear] = useState("");
-  const [caseType, setCaseType] = useState("");
-  const [disposition, setDisposition] = useState<Disposition>("both");
-  const [person, setPerson] = useState("");
+  const initialLocation = locationFromParams(searchParams);
+  const initialSearch = searchDefaultsFor(initialMode);
+  const [mode, setMode] = useState<Mode>(initialMode);
+  const [state, setState] = useState(initialLocation.state);
+  const [district, setDistrict] = useState(initialLocation.district);
+  const [court, setCourt] = useState(initialLocation.court);
+  const [query, setQuery] = useState(initialSearch.query);
+  const [year, setYear] = useState(initialSearch.year);
+  const [caseType, setCaseType] = useState(initialSearch.caseType);
+  const [disposition, setDisposition] = useState<Disposition>(initialSearch.disposition);
+  const [person, setPerson] = useState(initialSearch.person);
   const [error, setError] = useState("");
   const [results, setResults] = useState<UnifiedCase[] | null>(null);
   const states = unique(cases.map((item) => item.court.state));
@@ -56,15 +83,70 @@ export default function FindCasePage() {
   const searchError = error && locationReady;
 
   function clearResults() { setError(""); setResults(null); }
+  function applySearchDefaults(next: Mode) {
+    const defaults = searchDefaultsFor(next);
+    setQuery(defaults.query);
+    setYear(defaults.year);
+    setCaseType(defaults.caseType);
+    setPerson(defaults.person);
+    setDisposition(defaults.disposition);
+    setError("");
+    setResults(null);
+  }
+  function syncFinderUrl(nextMode: Mode, nextState: string, nextDistrict: string, nextCourt: string) {
+    const params = new URLSearchParams();
+    params.set("mode", nextMode);
+    if (nextState) params.set("state", nextState);
+    if (nextDistrict) params.set("district", nextDistrict);
+    if (nextCourt) params.set("court", nextCourt);
+    // Avoid App Router navigation so Suspense does not remount and wipe court context.
+    window.history.replaceState(window.history.state, "", `/find-case?${params.toString()}`);
+  }
+  useEffect(() => {
+    function onPopState() {
+      const params = new URLSearchParams(window.location.search);
+      const nextRequested = params.get("mode") as Mode | null;
+      const nextMode = modes.some((item) => item.id === nextRequested) ? nextRequested as Mode : "cnr";
+      const nextLocation = locationFromParams(params);
+      setMode(nextMode);
+      applySearchDefaults(nextMode);
+      setState(nextLocation.state);
+      setDistrict(nextLocation.district);
+      setCourt(nextLocation.court);
+      setError("");
+      setResults(null);
+    }
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+  useEffect(() => {
+    syncFinderUrl(initialMode, initialLocation.state, initialLocation.district, initialLocation.court);
+    // Seed shareable URL once; later updates go through selectMode / updateLocation / resetLocation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   function selectMode(next: Mode) {
-    setQuery(""); setYear(""); setCaseType(""); setPerson(""); setError(""); setResults(null);
-    router.push(`/find-case?mode=${next}`);
+    if (next === mode) return;
+    setMode(next);
+    applySearchDefaults(next);
+    syncFinderUrl(next, state, district, court);
   }
   function resetSearch() {
-    setQuery(""); setYear(""); setCaseType(""); setDisposition("both"); setPerson(""); setError(""); setResults(null);
+    applySearchDefaults(mode);
   }
   function resetLocation() {
-    setState(""); setDistrict(""); setCourt(""); setError(""); setResults(null);
+    setState(findCaseDefaults.state);
+    setDistrict(findCaseDefaults.district);
+    setCourt(findCaseDefaults.court);
+    setError("");
+    setResults(null);
+    syncFinderUrl(mode, findCaseDefaults.state, findCaseDefaults.district, findCaseDefaults.court);
+  }
+  function updateLocation(nextState: string, nextDistrict: string, nextCourt: string) {
+    setState(nextState);
+    setDistrict(nextDistrict);
+    setCourt(nextCourt);
+    clearResults();
+    syncFinderUrl(mode, nextState, nextDistrict, nextCourt);
   }
   function locationCases() {
     return cases.filter((item) => item.court.state === state && item.court.district === district && item.court.establishment === court);
@@ -72,22 +154,31 @@ export default function FindCasePage() {
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!state || !district || !court) { setError("Select a State, District, and Court Complex before searching this."); setResults(null); return; }
+    if (year && !/^20\d{2}$/.test(year)) { setError("Enter a four-digit registration year between 2000 and 2099."); setResults(null); return; }
     if (mode === "cause-list") {
       const search = new URLSearchParams({ state, district, court });
+      if (year) search.set("year", year);
+      if (caseType) search.set("caseType", caseType);
+      if (disposition !== "both") search.set("disposition", disposition);
       router.push(`/cause-list?${search.toString()}`);
       return;
     }
     if (mode === "cnr" && !query.trim()) { setError("Enter a CNR or Case ID."); setResults(null); return; }
     if ((mode === "advocate" || mode === "judge") && !person) { setError(`Choose a ${mode} from the list.`); setResults(null); return; }
-    if (year && !/^20\d{2}$/.test(year)) { setError("Enter a four-digit registration year between 2000 and 2099."); setResults(null); return; }
     let matched = locationCases();
     if (mode === "cnr") matched = matched.filter((item) => item.id.toLowerCase() === query.trim().toLowerCase());
     if (mode === "status") matched = matched.filter((item) => {
       const searchable = `${item.id} ${item.title} ${item.transactionId ?? ""} ${item.parties.petitioners.join(" ")} ${item.parties.respondents.join(" ")} ${item.advocates.petitioner.join(" ")} ${item.advocates.respondent.join(" ")}`.toLowerCase();
-      return (!query.trim() || searchable.includes(query.trim().toLowerCase())) && (!year || item.nextHearing.date.startsWith(year)) && (!caseType || item.caseType === caseType) && (disposition === "both" || dispositionFor(item) === disposition);
+      return (!query.trim() || searchable.includes(query.trim().toLowerCase())) && matchesCaseFilters(item, year, caseType, disposition);
     });
-    if (mode === "advocate" || mode === "judge") matched = matched.filter((item) => people.find((entry) => entry.name === person)?.caseIds.includes(item.id));
-    if (mode === "orders") matched = matched.filter((item) => item.orders.length > 0 || item.documents.some((document) => document.category === "Order"));
+    if (mode === "advocate" || mode === "judge") {
+      matched = matched.filter((item) => people.find((entry) => entry.name === person)?.caseIds.includes(item.id));
+      matched = matched.filter((item) => matchesCaseFilters(item, year, caseType, disposition));
+    }
+    if (mode === "orders") {
+      matched = matched.filter((item) => item.orders.length > 0 || item.documents.some((document) => document.category === "Order"));
+      matched = matched.filter((item) => matchesCaseFilters(item, year, caseType, disposition));
+    }
     if (mode === "caveat") matched = [];
     setError(""); setResults(matched);
   }
@@ -104,29 +195,29 @@ export default function FindCasePage() {
       <div className="wrap find-case-body">
         <form className="finder-form-layout" onSubmit={handleSearch} noValidate>
           <fieldset className="finder-location finder-context">
-            <legend className="sr-only">Select court context, required for every search</legend>
+            <legend className="sr-only">Select court, required for every search</legend>
             <div className="finder-context-head">
               <span className="find-menu-icon" aria-hidden="true"><MapPin /></span>
               <div>
-                <h2>Select court context</h2>
+                <h2>Select court</h2>
                 <p className="eyebrow">required for every search</p>
               </div>
             </div>
             <div className="finder-field-row finder-location-row">
               <label>State
-                <select value={state} onChange={(event) => { setState(event.target.value); setDistrict(""); setCourt(""); clearResults(); }}>
+                <select value={state} onChange={(event) => updateLocation(event.target.value, "", "")}>
                   <option value="">Select state</option>
                   {states.map((item) => <option key={item} value={item}>{item}</option>)}
                 </select>
               </label>
               <label>District
-                <select disabled={!state} value={district} onChange={(event) => { setDistrict(event.target.value); setCourt(""); clearResults(); }}>
+                <select disabled={!state} value={district} onChange={(event) => updateLocation(state, event.target.value, "")}>
                   <option value="">Select district</option>
                   {districts.map((item) => <option key={item} value={item}>{item}</option>)}
                 </select>
               </label>
               <label>Court Complex
-                <select disabled={!district} value={court} onChange={(event) => { setCourt(event.target.value); clearResults(); }}>
+                <select disabled={!district} value={court} onChange={(event) => updateLocation(state, district, event.target.value)}>
                   <option value="">Select court complex</option>
                   {courts.map((item) => <option key={item} value={item}>{item}</option>)}
                 </select>
@@ -138,7 +229,7 @@ export default function FindCasePage() {
               <p className="finder-context-hint">Choose all three fields, then use a search tab below.</p>
             )}
             {locationError && <p className="finder-error" aria-live="polite">{error}</p>}
-            {(state || district || court) && <button className="finder-reset" type="button" onClick={resetLocation}>Clear court context</button>}
+            {(state || district || court) && <button className="finder-reset" type="button" onClick={resetLocation}>Reset court context</button>}
           </fieldset>
 
           <section className="finder-workspace" aria-labelledby="finder-title">
@@ -177,35 +268,9 @@ export default function FindCasePage() {
                 </label>
               )}
               {mode === "status" && (
-                <>
-                  <label>Party name or case number
-                    <input autoComplete="off" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search a bundled name or case ID" />
-                  </label>
-                  <div className="finder-field-row finder-status-row">
-                    <label>Registration Year
-                      <input inputMode="numeric" maxLength={4} value={year} onChange={(event) => setYear(event.target.value.replace(/[^0-9]/g, ""))} placeholder="Enter year" />
-                    </label>
-                    <label>Case type
-                      <select value={caseType} onChange={(event) => setCaseType(event.target.value)}>
-                        <option value="">All case types</option>
-                        {caseTypeGroups.map((group) => (
-                          <optgroup key={group.label} label={group.label}>
-                            {group.options.map((item) => <option key={item}>{item}</option>)}
-                          </optgroup>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-                  <fieldset className="finder-disposition">
-                    <legend>Case status</legend>
-                    {(["pending", "disposed", "both"] as Disposition[]).map((item) => (
-                      <label key={item}>
-                        <input checked={disposition === item} name="disposition" onChange={() => setDisposition(item)} type="radio" />
-                        <span>{item[0].toUpperCase() + item.slice(1)}</span>
-                      </label>
-                    ))}
-                  </fieldset>
-                </>
+                <label>Party name or case number
+                  <input autoComplete="off" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search a bundled name or case ID" />
+                </label>
               )}
               {(mode === "advocate" || mode === "judge") && (
                 <PersonPicker label={mode === "advocate" ? "Advocate name" : "Judge name"} people={people} value={person} onChange={setPerson} />
@@ -213,6 +278,16 @@ export default function FindCasePage() {
               {mode === "orders" && <p className="finder-note">Only bundled records with an illustrative order document will appear.</p>}
               {mode === "cause-list" && <p className="finder-note">Search opens the Daily Cause List for the selected court. Listings are illustrative, not live court data.</p>}
               {mode === "caveat" && <p className="finder-note">No caveat records are bundled. The search will clearly confirm the empty state.</p>}
+              {(mode === "status" || mode === "advocate" || mode === "judge" || mode === "orders" || mode === "cause-list" || mode === "caveat") && (
+                <CaseFilterFields
+                  caseType={caseType}
+                  disposition={disposition}
+                  onCaseTypeChange={setCaseType}
+                  onDispositionChange={setDisposition}
+                  onYearChange={setYear}
+                  year={year}
+                />
+              )}
               {searchError && <p className="finder-error" aria-live="polite">{error}</p>}
               <div className="finder-actions">
                 <button className="login" type="submit">{mode === "cause-list" ? "Open daily cause list" : "Search local records"} <span aria-hidden="true">→</span></button>
@@ -231,9 +306,54 @@ export default function FindCasePage() {
             <li>“Pending” and “Disposed” are illustrative search labels, not court status records.</li>
           </ul>
         </aside>
-        <Link className="back-link" href="/">← Back to Nyaya home</Link>
+        <BackLink href="/">Back to Nyaya home</BackLink>
       </div>
     </main>
+  );
+}
+
+function CaseFilterFields({
+  year,
+  caseType,
+  disposition,
+  onYearChange,
+  onCaseTypeChange,
+  onDispositionChange,
+}: {
+  year: string;
+  caseType: string;
+  disposition: Disposition;
+  onYearChange: (value: string) => void;
+  onCaseTypeChange: (value: string) => void;
+  onDispositionChange: (value: Disposition) => void;
+}) {
+  return (
+    <>
+      <div className="finder-field-row finder-status-row">
+        <label>Registration Year
+          <input inputMode="numeric" maxLength={4} value={year} onChange={(event) => onYearChange(event.target.value.replace(/[^0-9]/g, ""))} placeholder="Enter year" />
+        </label>
+        <label>Case type
+          <select value={caseType} onChange={(event) => onCaseTypeChange(event.target.value)}>
+            <option value="">All case types</option>
+            {caseTypeGroups.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.options.map((item) => <option key={item}>{item}</option>)}
+              </optgroup>
+            ))}
+          </select>
+        </label>
+      </div>
+      <fieldset className="finder-disposition">
+        <legend>Case status</legend>
+        {(["pending", "disposed", "both"] as Disposition[]).map((item) => (
+          <label key={item}>
+            <input checked={disposition === item} name="disposition" onChange={() => onDispositionChange(item)} type="radio" />
+            <span>{item[0].toUpperCase() + item.slice(1)}</span>
+          </label>
+        ))}
+      </fieldset>
+    </>
   );
 }
 

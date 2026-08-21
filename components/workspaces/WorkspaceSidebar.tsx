@@ -77,15 +77,21 @@ export function WorkspaceRail() {
       const headerInner = document.querySelector(".header-inner");
       const footer = document.querySelector("footer");
       const sidebar = document.querySelector(".workspace-sidebar");
-      const top = header instanceof HTMLElement ? Math.max(0, Math.round(header.getBoundingClientRect().bottom)) : 74;
+      const headerBottom = header instanceof HTMLElement ? Math.max(0, Math.round(header.getBoundingClientRect().bottom)) : 74;
       const inset = headerInner instanceof HTMLElement ? Math.max(0, Math.round(headerInner.getBoundingClientRect().left)) : 24;
       const footerTop = footer instanceof HTMLElement ? footer.getBoundingClientRect().top : Number.POSITIVE_INFINITY;
-      // Keep a usable rail height while the page is still hydrating/short (footer sits high).
       const gutter = 24;
-      const minRailHeight = 280;
-      const rawBottom = Math.max(gutter, Math.round(window.innerHeight - footerTop + gutter));
-      const maxBottom = Math.max(gutter, window.innerHeight - top - minRailHeight);
-      const bottom = Math.min(rawBottom, maxBottom);
+      const topGutter = window.innerWidth > 850 ? 12 : 0;
+      const pinTop = headerBottom + topGutter;
+      // Sticky-like: stay pinned while scrolling, then ride up with the footer.
+      // Skip on short/loading pages (footer sits high) and on the mobile stacked rail.
+      const pageIsTall = document.documentElement.scrollHeight > window.innerHeight + 80;
+      const footerPush =
+        window.innerWidth > 850 && pageIsTall
+          ? Math.max(0, Math.round(window.innerHeight - footerTop + gutter))
+          : 0;
+      const top = pinTop - footerPush;
+      const bottom = gutter + footerPush;
       document.documentElement.style.setProperty("--workspace-rail-top", `${top}px`);
       document.documentElement.style.setProperty("--workspace-rail-bottom", `${bottom}px`);
       document.documentElement.style.setProperty("--workspace-page-inset", `${inset}px`);

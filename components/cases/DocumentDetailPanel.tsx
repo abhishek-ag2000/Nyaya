@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { loadDemoCase } from "@/data/demo-case-store";
+import { BackLink } from "@/components/BackLink";
+import { loadCaseRecord } from "@/data/demo-case-store";
 import type { CaseDocument, UnifiedCase } from "@/data/unified-case";
 
 function dateLabel(date: string, style: "long" | "short" = "long") {
@@ -68,8 +69,10 @@ export default function DocumentDetailPanel({
   initialCase?: UnifiedCase;
 }) {
   const [caseData, setCaseData] = useState(initialCase);
+  const [ready, setReady] = useState(Boolean(initialCase));
   useEffect(() => {
-    if (initialCase) setCaseData(loadDemoCase(caseId, initialCase));
+    setCaseData(loadCaseRecord(caseId, initialCase));
+    setReady(true);
   }, [caseId, initialCase]);
 
   const document = caseData?.documents.find((item) => item.id === documentId);
@@ -77,6 +80,15 @@ export default function DocumentDetailPanel({
     () => (document?.extractedText ? stripExtractPrefix(document.extractedText) : ""),
     [document?.extractedText]
   );
+
+  if (!ready) {
+    return (
+      <main className="wrap static-page">
+        <p className="kicker">Loading local document</p>
+        <h1>Opening this case record…</h1>
+      </main>
+    );
+  }
 
   if (!caseData) {
     return (
@@ -91,8 +103,8 @@ export default function DocumentDetailPanel({
   if (!document) {
     return (
       <main className="wrap static-page">
-        <p className="kicker">Loading local document</p>
-        <h1>Checking this case record…</h1>
+        <p className="kicker">No local document</p>
+        <h1>This document is not on the case record.</h1>
         <p>If this document is not available after the demo state loads, it may have been reset.</p>
         <Link className="outline-cta" href={`/cases/${caseId}`}>Return to case →</Link>
       </main>
@@ -108,9 +120,9 @@ export default function DocumentDetailPanel({
 
   return (
     <main className="wrap doc-record">
-      <Link className="back-link doc-back" href={`/cases/${caseData.id}`}>
-        ← Back to {caseData.shortTitle || "case"}
-      </Link>
+      <BackLink className="back-link doc-back" href={`/cases/${caseData.id}`}>
+        Back to {caseData.shortTitle || "case"}
+      </BackLink>
 
       <header className="doc-header">
         <p className="doc-kicker">{documentKicker(document)}</p>

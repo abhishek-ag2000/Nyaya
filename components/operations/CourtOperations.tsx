@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { findCaseDefaults } from "@/data/find-case-fixture";
 import { getUserCases } from "@/data/user-cases";
 import type { UnifiedCase } from "@/data/unified-case";
 
@@ -29,19 +30,19 @@ export function CauseList() {
   const router = useRouter();
   const params = useSearchParams();
   const cases = useCases();
-  const [state, setState] = useState(params.get("state") ?? "");
-  const [district, setDistrict] = useState(params.get("district") ?? "");
-  const [court, setCourt] = useState(params.get("court") ?? "");
+  const [state, setState] = useState(params.get("state") ?? findCaseDefaults.state);
+  const [district, setDistrict] = useState(params.get("district") ?? findCaseDefaults.district);
+  const [court, setCourt] = useState(params.get("court") ?? findCaseDefaults.court);
   const [hearingDate, setHearingDate] = useState(params.get("date") || todayIso());
   const [list, setList] = useState<"daily" | "supplementary">(params.get("list") === "supplementary" ? "supplementary" : "daily");
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
-  const [submitted, setSubmitted] = useState(Boolean(params.get("state") && params.get("district") && params.get("court")));
+  const [submitted, setSubmitted] = useState(true);
 
   useEffect(() => {
-    const nextState = params.get("state") ?? "";
-    const nextDistrict = params.get("district") ?? "";
-    const nextCourt = params.get("court") ?? "";
+    const nextState = params.get("state") ?? findCaseDefaults.state;
+    const nextDistrict = params.get("district") ?? findCaseDefaults.district;
+    const nextCourt = params.get("court") ?? findCaseDefaults.court;
     const nextDate = params.get("date");
     setState(nextState);
     setDistrict(nextDistrict);
@@ -108,7 +109,7 @@ export function CauseList() {
       <p>Select a state, district and court complex to see the listed matters for that court.</p>
       <form className="cause-list-form" onSubmit={handleSubmit} noValidate>
         <fieldset>
-          <legend>Select court context</legend>
+          <legend>Select court</legend>
           <div className="cause-list-fields">
             <label>State
               <select value={state} onChange={(event) => { setState(event.target.value); setDistrict(""); setCourt(""); setSubmitted(false); setError(""); }}>
@@ -145,8 +146,19 @@ export function CauseList() {
           <div className="cause-list-actions">
             <button className="login" type="submit">View cause list <span aria-hidden="true">→</span></button>
             {(state || district || court) && (
-              <button className="finder-reset" type="button" onClick={() => { setState(""); setDistrict(""); setCourt(""); setHearingDate(todayIso()); setList("daily"); setQuery(""); setError(""); setSubmitted(false); router.replace("/cause-list", { scroll: false }); }}>
-                Clear selection
+              <button className="finder-reset" type="button" onClick={() => {
+                const next = { state: findCaseDefaults.state, district: findCaseDefaults.district, court: findCaseDefaults.court, date: todayIso(), list: "daily" as const };
+                setState(next.state);
+                setDistrict(next.district);
+                setCourt(next.court);
+                setHearingDate(next.date);
+                setList(next.list);
+                setQuery("");
+                setError("");
+                setSubmitted(true);
+                syncUrl(next);
+              }}>
+                Reset selection
               </button>
             )}
           </div>

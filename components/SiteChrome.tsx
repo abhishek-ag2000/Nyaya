@@ -52,7 +52,7 @@ export function Header() {
 export function Footer({ home = false }: { home?: boolean }) {
   return <footer><div className="wrap">
     <div className="footer-grid">
-      <div><Wordmark /><p>{home ? "A prototype exploring a simpler digital experience for India&apos;s courts." : "A simpler digital experience for India&apos;s courts."}</p></div>
+      <div><Wordmark /><p>{home ? "A prototype exploring a simpler digital experience for India\u2019s courts." : "A simpler digital experience for India\u2019s courts."}</p></div>
       <div><b>Services</b><Link href="/find-case">Case search</Link><Link href="/file-a-case">File a fresh case</Link><Link href="/hearings">Hearings</Link><Link href="/cause-list">Daily cause list</Link><Link href="/cases/NYA-WB-DEMO-04821?tab=Filed+documents">Documents</Link><Link href="/courts">Court services</Link></div>
       <div><b>Directories</b><Link href="/advocate-directory">Lawyers directory</Link><Link href="/judges-directory">Judges directory</Link><Link href="/courts">Court information</Link><Link href="/cause-list">Cause list</Link><Link href="/judgments">Judgments &amp; orders</Link></div>
       <div><b>Resources</b><Link href="/nyaya-guide">Nyaya Guide</Link><Link href="/about">About us</Link><Link href="/whats-mocked">What&apos;s mocked</Link><Link href="/sitemap">Sitemap</Link><Link href="/privacy">Privacy policy</Link><Link href="/terms">Terms &amp; conditions</Link><Link href="/copyright">Copyright policy</Link><a href="https://ecommitteesci.gov.in/" target="_blank" rel="noreferrer">Public reference <span className="external">↗ external</span></a></div>

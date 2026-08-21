@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BackLink } from "@/components/BackLink";
 import { Disclaimer, Footer, Header } from "@/components/SiteChrome";
 import { IdentityVerifiedBadge, ProfileChips, toLinkedCaseItems } from "@/components/directory/PublicProfileShared";
 import { LinkedCasesPanel } from "@/components/directory/LinkedCasesPanel";
@@ -34,7 +34,7 @@ export default async function AdvocateProfilePage({ params }: { params: Promise<
     <Disclaimer />
     <Header />
     <main className="wrap directory-profile-page">
-      <Link className="profile-back-link" href="/advocate-directory">← Back to lawyers directory</Link>
+      <BackLink className="profile-back-link" href="/advocate-directory">Back to lawyers directory</BackLink>
 
       <div className="directory-profile-top">
       <section className="directory-profile-hero">

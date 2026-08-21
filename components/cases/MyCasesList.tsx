@@ -47,7 +47,7 @@ export default function MyCasesList() {
   const pendingCount = cases.filter(isPendingApproval).length;
   const items = useMemo(() => cases.filter((caseData) => {
     const haystack = `${caseData.title} ${caseData.id} ${caseData.caseType} ${caseData.court.name} ${caseData.transactionId ?? ""}`.toLowerCase();
-    const attention = caseData.actionsRequired.some((item) => item.status === "open");
+    const attention = caseData.actionsRequired.some((item) => item.status === "open" || item.status === "requested" || item.status === "issued" || item.status === "assigned" || item.status === "attempted" || item.status === "clarification-requested");
     if (!haystack.includes(query.toLowerCase())) return false;
     if (filter === "attention") return attention;
     if (filter === "pending") return isPendingApproval(caseData);
@@ -96,7 +96,7 @@ export default function MyCasesList() {
                 <p><span>Court</span>{caseData.court.name}<small>{caseData.court.establishment}</small></p>
                 <p><span>Stage</span>{pending ? "Pending for approval" : caseData.stage.current}</p>
                 <p><span>Next activity</span>{date(caseData.nextHearing.date)}<small>{caseData.nextHearing.time}</small></p>
-                <p className={caseData.actionsRequired.some((item) => item.status === "open") ? "has-attention" : ""}><span>Attention</span>{pending ? "Registry review" : caseData.actionsRequired.filter((item) => item.status === "open").length || "None"}</p>
+                <p className={caseData.actionsRequired.some((item) => item.status === "open" || item.status === "requested" || item.status === "issued" || item.status === "assigned" || item.status === "attempted" || item.status === "clarification-requested") ? "has-attention" : ""}><span>Attention</span>{pending ? "Registry review" : caseData.actionsRequired.filter((item) => item.status === "open" || item.status === "requested" || item.status === "issued" || item.status === "assigned" || item.status === "attempted" || item.status === "clarification-requested").length || "None"}</p>
                 <p><span>Updated</span>{date(getLatestCaseEvent(caseData)?.occurredAt ?? caseData.status.updatedAt)}</p>
                 <i aria-hidden="true">→</i>
               </Link>

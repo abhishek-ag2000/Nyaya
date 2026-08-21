@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, Loader2 } from "lucide-react";
 import { caseCategories, getCaseCategory, type CaseCategory } from "@/data/case-categories";
 import { FILING_ROUTE_DISCLAIMER, getStageMap, offenceClassOptions, type OffenceClass } from "@/data/forum-and-stages";
 import { createFiledDemoCase } from "@/data/demo-case-store";
@@ -158,7 +158,7 @@ export default function FreshCaseFiling() {
   const withinLimitation = Boolean(state.earliestDate);
   const nav = (
     <div className="filing-nav-actions">
-      {state.step > 1 && <button className="ghost-cta" onClick={() => goTo(state.step - 1)} type="button">← Previous step ({String(state.step - 1).padStart(2, "0")})</button>}
+      {state.step > 1 && <button className="ghost-cta" onClick={() => goTo(state.step - 1)} type="button"><ArrowLeft aria-hidden="true" className="back-arrow-icon" /> Previous step ({String(state.step - 1).padStart(2, "0")})</button>}
       {state.step === 1 && <button className="ghost-cta" onClick={saveDraft} type="button">{draftSaved || "Save draft"}</button>}
       {state.step < 9 && (
         <button className="filing-continue" disabled={state.step === 8 && scanning} onClick={continueToNext} type="button">

@@ -1,10 +1,12 @@
 import { getProceduralMap } from "@/data/procedural-stages";
-import { demoUnifiedCase, type CaseDocument, type CaseEvent, type CaseEventType, type CaseNotification, type DocumentIntakeResult, type UnifiedCase } from "@/data/unified-case";
+import type { Role } from "@/data/roles";
+import { demoUnifiedCase, type CaseActionStatus, type CaseDocument, type CaseEvent, type CaseEventType, type CaseNotification, type DocumentIntakeResult, type UnifiedCase } from "@/data/unified-case";
 
 const storageKey = (caseId: string) => `nyaya-demo-case:${caseId}`;
 const filedIndexKey = "nyaya-demo-filed-ids";
+const pendingWorkflowKey = "nyaya-pending-action-workflows";
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
-const eventNotificationType: Partial<Record<CaseEventType, CaseNotification["type"]>> = { "document-uploaded": "document", "filing-needs-attention": "action", "filing-ready": "filing", "hearing-rescheduled": "hearing", "order-added": "order" };
+const eventNotificationType: Partial<Record<CaseEventType, CaseNotification["type"]>> = { "document-uploaded": "document", "filing-needs-attention": "action", "filing-ready": "filing", "hearing-rescheduled": "hearing", "order-added": "order", "action-resolved": "action", "status-changed": "action" };
 
 export type ConfirmedIntake = { id: string; title: string; category: CaseDocument["category"]; subtype?: string; date: string; pages: number; addedBy: string; source: "upload"; intake: DocumentIntakeResult };
 
@@ -90,10 +92,165 @@ export function advanceCaseStage(caseId: string, fallback?: UnifiedCase) {
   }, event));
 }
 export function resetDemoCase(caseId: string): UnifiedCase { if (typeof window !== "undefined") { window.localStorage.removeItem(storageKey(caseId)); window.dispatchEvent(new Event("nyaya-demo-case-updated")); } return clone(demoUnifiedCase); }
-export function resetNyayaDemo(): UnifiedCase { if (typeof window !== "undefined") { Object.keys(window.localStorage).filter((key) => key.startsWith("nyaya-demo-")).forEach((key) => window.localStorage.removeItem(key)); window.dispatchEvent(new Event("nyaya-demo-case-updated")); } return clone(demoUnifiedCase); }
+export function resetNyayaDemo(): UnifiedCase {
+  if (typeof window !== "undefined") {
+    Object.keys(window.localStorage).filter((key) => key.startsWith("nyaya-demo-")).forEach((key) => window.localStorage.removeItem(key));
+    window.localStorage.removeItem(pendingWorkflowKey);
+    window.dispatchEvent(new Event("nyaya-demo-case-updated"));
+  }
+  return clone(demoUnifiedCase);
+}
 export function getRecentCaseEvents(caseData: UnifiedCase, count = 4) { return [...caseData.events].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)).slice(0, count); }
 export function getUnreadNotifications(caseData: UnifiedCase) { return caseData.notifications.filter((notification) => !notification.read); }
-export function getOpenCaseActions(caseData: UnifiedCase) { return caseData.actionsRequired.filter((action) => action.status === "open"); }
+export function getOpenCaseActions(caseData: UnifiedCase) { return caseData.actionsRequired.filter((action) => isActiveWorkflowStatus(normalizeWorkflowStatus(action.status))); }
+
+export type PendingActionWorkflowStatus = Exclude<CaseActionStatus, "open" | "completed">;
+export type PendingActionAuditEntry = { at: string; status: PendingActionWorkflowStatus; byRole: Role; label: string };
+export type PendingActionWorkflow = {
+  status: PendingActionWorkflowStatus;
+  updatedAt: string;
+  auditTrail: PendingActionAuditEntry[];
+};
+
+const PENDING_TRANSITIONS: Record<PendingActionWorkflowStatus, PendingActionWorkflowStatus[]> = {
+  requested: ["issued", "approved", "disapproved", "clarification-requested"],
+  "clarification-requested": ["requested"],
+  approved: ["issued"],
+  disapproved: [],
+  issued: ["assigned"],
+  assigned: ["attempted"],
+  attempted: ["served", "failed"],
+  served: [],
+  failed: ["assigned"],
+};
+
+const STATUS_LABELS: Record<PendingActionWorkflowStatus, string> = {
+  requested: "Document request opened",
+  issued: "Request issued",
+  assigned: "Assigned for service",
+  attempted: "Service attempted",
+  served: "Served",
+  failed: "Service failed",
+  approved: "Approved",
+  disapproved: "Disapproved",
+  "clarification-requested": "Clarification requested",
+};
+
+export function normalizeWorkflowStatus(status: CaseActionStatus | PendingActionWorkflowStatus): PendingActionWorkflowStatus {
+  if (status === "open") return "requested";
+  if (status === "completed") return "approved";
+  return status;
+}
+
+export function isTerminalWorkflowStatus(status: PendingActionWorkflowStatus) {
+  return status === "approved" || status === "disapproved" || status === "served" || status === "failed";
+}
+
+export function isActiveWorkflowStatus(status: PendingActionWorkflowStatus) {
+  return !isTerminalWorkflowStatus(status);
+}
+
+export function getAllowedPendingTransitions(status: PendingActionWorkflowStatus) {
+  return PENDING_TRANSITIONS[status] ?? [];
+}
+
+export function pendingActionStatusLabel(status: PendingActionWorkflowStatus) {
+  return STATUS_LABELS[status];
+}
+
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function readWorkflows(): Record<string, PendingActionWorkflow> {
+  if (typeof window === "undefined") return {};
+  try {
+    return JSON.parse(window.localStorage.getItem(pendingWorkflowKey) ?? "{}") as Record<string, PendingActionWorkflow>;
+  } catch {
+    return {};
+  }
+}
+
+function writeWorkflows(workflows: Record<string, PendingActionWorkflow>, dispatch = true) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(pendingWorkflowKey, JSON.stringify(workflows));
+  if (dispatch) window.dispatchEvent(new Event("nyaya-demo-case-updated"));
+}
+
+export function getPendingActionWorkflows() {
+  return readWorkflows();
+}
+
+export function getPendingActionWorkflow(itemId: string): PendingActionWorkflow {
+  const existing = readWorkflows()[itemId];
+  if (existing) return existing;
+  const at = todayIso();
+  return {
+    status: "requested",
+    updatedAt: at,
+    auditTrail: [{ at, status: "requested", byRole: "advocate", label: STATUS_LABELS.requested }],
+  };
+}
+
+export function advancePendingAction(input: {
+  itemId: string;
+  caseId: string;
+  sourceActionId?: string;
+  nextStatus: PendingActionWorkflowStatus;
+  role: Role;
+}): PendingActionWorkflow | null {
+  const current = getPendingActionWorkflow(input.itemId);
+  if (!getAllowedPendingTransitions(current.status).includes(input.nextStatus)) return null;
+
+  const at = todayIso();
+  const entry: PendingActionAuditEntry = {
+    at,
+    status: input.nextStatus,
+    byRole: input.role,
+    label: STATUS_LABELS[input.nextStatus],
+  };
+  const workflow: PendingActionWorkflow = {
+    status: input.nextStatus,
+    updatedAt: at,
+    auditTrail: [...current.auditTrail, entry],
+  };
+
+  const workflows = readWorkflows();
+  workflows[input.itemId] = workflow;
+
+  if (input.sourceActionId) {
+    writeWorkflows(workflows, false);
+    const caseData = clone(loadDemoCase(input.caseId));
+    if (caseData.id === input.caseId) {
+      const event: CaseEvent = {
+        id: `event-pending-${input.itemId}-${input.nextStatus}-${at}`,
+        caseId: input.caseId,
+        type: input.nextStatus === "approved" || input.nextStatus === "disapproved" || input.nextStatus === "served" ? "action-resolved" : "status-changed",
+        occurredAt: at,
+        title: STATUS_LABELS[input.nextStatus],
+        description: `Pending action moved to ${input.nextStatus.replaceAll("-", " ")}.`,
+        plainLanguage: STATUS_LABELS[input.nextStatus],
+        source: { type: "case" },
+        actor: { role: input.role, label: input.role },
+        actionRequired: { required: isActiveWorkflowStatus(input.nextStatus), actionId: input.sourceActionId },
+        visibility: "case-users",
+      };
+      persist(appendCaseEvent({
+        ...caseData,
+        actionsRequired: caseData.actionsRequired.map((action) =>
+          action.id === input.sourceActionId ? { ...action, status: input.nextStatus } : action
+        ),
+      }, event));
+    } else if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("nyaya-demo-case-updated"));
+    }
+  } else {
+    writeWorkflows(workflows, true);
+  }
+
+  return workflow;
+}
+
 export function getUpcomingHearings(caseData: UnifiedCase) { return [caseData.nextHearing]; }
 /** A small reusable projection so the UI never maintains a second timeline source. */
 export function eventToTimeline(event: CaseEvent) { return { id: event.id, date: event.occurredAt, kind: event.type, title: event.title, description: event.description, plainLanguage: event.plainLanguage, source: event.source, details: event.details }; }

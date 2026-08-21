@@ -1,5 +1,18 @@
 export type FinderPerson = { name: string; caseIds: string[] };
 
+/** Prefill values for the Find-a-case mockup so every tab can submit without empty-field blocking. */
+export const findCaseDefaults = {
+  state: "West Bengal",
+  district: "Darjeeling",
+  court: "Siliguri Court Complex",
+  cnr: "NYA-WB-DEMO-04821",
+  party: "Rahul Sharma",
+  year: "2026",
+  caseType: "Criminal Miscellaneous Matter",
+  advocate: "Advocate A. Sen",
+  judge: "Presiding Judge Demo-03",
+} as const;
+
 export const caseTypeGroups = [
   { label: "Civil", options: ["Civil Suit", "Civil Appeal", "Civil Revision", "Execution Proceeding", "Property Suit", "Small Cause Suit"] },
   { label: "Criminal", options: ["Criminal Matter", "Criminal Appeal", "Criminal Revision", "Bail Matter", "Criminal Miscellaneous Matter", "Complaint Case"] },

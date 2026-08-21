@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import type { Hearing } from "@/data/hearings";
 import { getHearingById } from "@/data/hearings";
 import { getMockRole } from "@/data/mock-session";
@@ -9,6 +8,7 @@ import type { Role } from "@/data/roles";
 import { getUnifiedCase } from "@/data/unified-case";
 import { readOnlyDemoCases } from "@/data/user-cases";
 import { canJoinHearing, getHearingExperience } from "@/lib/hearing-access";
+import { BackLink } from "@/components/BackLink";
 import HearingCasePanel from "@/components/hearings/HearingCasePanel";
 import HearingControls from "@/components/hearings/HearingControls";
 import HearingHeader from "@/components/hearings/HearingHeader";
@@ -44,7 +44,7 @@ export default function HearingRoom({ hearing: initialHearing }: { hearing: Hear
   return (
     <main className="hearing-room">
       <div className="hearing-room-top">
-        <Link className="back-link" href="/hearings">← Hearings</Link>
+        <BackLink href="/hearings">Hearings</BackLink>
         <HearingHeader hearing={hearing} />
       </div>
       <div className={`hearing-room-body${showParticipants || showCase ? " has-side" : ""}`}>

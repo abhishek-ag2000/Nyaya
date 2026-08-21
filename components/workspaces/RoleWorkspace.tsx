@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getMockRole } from "@/data/mock-session";
 import { roleConfig, roleHome, type Role } from "@/data/roles";
-import { getOpenActionsForUser, getUpcomingItemsForUser, getUserCases } from "@/data/user-cases";
+import { countOpenPendingActions, getPendingActionsForRole, getUpcomingItemsForUser, getUserCases } from "@/data/user-cases";
 import type { UnifiedCase } from "@/data/unified-case";
 import Link from "next/link";
+import PendingActionsTable from "@/components/workspaces/PendingActionsTable";
 
 const date = (value: string) => new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short" }).format(new Date(`${value}T00:00:00`));
 const copy: Record<Role, { question: string; queue: string; detail: string }> = {
@@ -51,8 +52,9 @@ export default function RoleWorkspace({ requiredRole }: { requiredRole: Role }) 
 
 function Workspace({ role, cases }: { role: Role; cases: UnifiedCase[] }) {
   const config = roleConfig[role], details = copy[role];
-  const actions = getOpenActionsForUser(cases), upcoming = getUpcomingItemsForUser(cases);
-  const queue = role === "judge" ? cases.filter((item) => item.stage.current !== "Decision") : role === "registry" ? cases.filter((item) => item.filings.some((filing) => filing.status === "Needs Attention" || filing.status === "Under Review")) : role === "stenographer" ? cases.slice(0, 2) : role === "police" ? cases.filter((item) => item.caseCategory.toLowerCase().includes("criminal")) : cases;
+  const pending = getPendingActionsForRole(role, cases);
+  const openPending = countOpenPendingActions(role, cases);
+  const upcoming = getUpcomingItemsForUser(cases);
   return (
     <main className="wrap role-workspace">
       <div className="workspace-main">
@@ -63,13 +65,13 @@ function Workspace({ role, cases }: { role: Role; cases: UnifiedCase[] }) {
           <p>{details.question}</p>
         </header>
         <section className="workspace-priorities">
-          <div>
+          <Link href="/pending-actions">
             <span>{details.queue}</span>
             <b>
-              {actions.length} <small>illustrative items</small>
+              {openPending} <small>illustrative items</small>
             </b>
             <p>{details.detail}</p>
-          </div>
+          </Link>
           <div>
             <span>Upcoming activity</span>
             <b>
@@ -96,40 +98,12 @@ function Workspace({ role, cases }: { role: Role; cases: UnifiedCase[] }) {
         <section className="workspace-section">
           <div className="workspace-section-heading">
             <div>
-              <span>{role === "citizen" ? "My cases" : details.queue}</span>
-              <h2>
-                {role === "judge"
-                  ? "Today’s court context"
-                  : role === "registry"
-                    ? "Filing and scrutiny context"
-                    : role === "stenographer"
-                      ? "Assigned proceedings"
-                      : role === "police"
-                        ? "Investigation-linked matters"
-                        : role === "citizen"
-                          ? "Your cases"
-                          : "What needs attention"}
-              </h2>
+              <span>Pending actions</span>
+              <h2>Status, deadlines, and document requests</h2>
             </div>
-            {role !== "citizen" && <Link href="/my-cases">View all cases →</Link>}
+            <Link href="/pending-actions">View all pending actions →</Link>
           </div>
-          {role === "citizen" ? (
-            <CaseRows cases={cases} role={role} />
-          ) : role === "advocate" && actions.length ? (
-            <div className="workspace-attention-list">
-              {actions.slice(0, 3).map(({ caseData, ...action }) => (
-                <Link href={`/cases/${caseData.id}`} key={action.id}>
-                  <div>
-                    <b>{caseData.shortTitle}</b>
-                    <p>{action.title}</p>
-                  </div>
-                  <span>{action.dueDate ? `By ${date(action.dueDate)}` : "Review"} →</span>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <CaseRows cases={queue.slice(0, 3)} role={role} />
-          )}
+          <PendingActionsTable items={pending.slice(0, 6)} compact showRespond={role !== "citizen"} />
         </section>
         <section className="workspace-section">
           <div className="workspace-section-heading">
@@ -155,29 +129,5 @@ function Workspace({ role, cases }: { role: Role; cases: UnifiedCase[] }) {
         </section>
       </div>
     </main>
-  );
-}
-
-function CaseRows({ cases, role }: { cases: UnifiedCase[]; role: Role }) {
-  return (
-    <div className="workspace-attention-list">
-      {cases.length ? (
-        cases.map((item) => (
-          <Link href={`/cases/${item.id}`} key={item.id}>
-            <div>
-              <b>{item.shortTitle}</b>
-              <p>
-                {role === "registry"
-                  ? `${item.filings.length} filing${item.filings.length === 1 ? "" : "s"} · ${item.stage.current}`
-                  : `${item.caseType} · ${item.stage.current}`}
-              </p>
-            </div>
-            <span>{date(item.nextHearing.date)} →</span>
-          </Link>
-        ))
-      ) : (
-        <p className="calm-empty">No local queue entries are bundled for this view.</p>
-      )}
-    </div>
   );
 }

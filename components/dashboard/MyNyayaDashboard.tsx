@@ -101,7 +101,7 @@ export default function MyNyayaDashboard() {
   );
 }
 function CasePreview({ caseData }: { caseData: UnifiedCase }) {
-  const count = caseData.actionsRequired.filter((item) => item.status === "open").length;
+  const count = caseData.actionsRequired.filter((item) => item.status === "open" || item.status === "requested" || item.status === "issued" || item.status === "assigned" || item.status === "attempted" || item.status === "clarification-requested").length;
   const update = getLatestCaseEvent(caseData);
   return (
     <Link className="dashboard-case" href={`/cases/${caseData.id}`}>

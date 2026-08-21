@@ -1,10 +1,11 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { AlertTriangle, CheckCircle2, ChevronRight, FileText, Gavel, Paperclip, Upload } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronRight, Download, FileText, Gavel, Paperclip, Printer, Upload } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { BackLink } from "@/components/BackLink";
 import { loadDemoCase } from "@/data/demo-case-store";
 import type { CaseAction, CaseEvent, UnifiedCase } from "@/data/unified-case";
 import { getMockRole } from "@/data/mock-session";
@@ -12,7 +13,9 @@ import { roleConfig, type Role } from "@/data/roles";
 import CaseHearingsPanel from "@/components/cases/CaseHearingsPanel";
 import CaseHeaderStatus from "@/components/cases/CaseHeaderStatus";
 import CaseOverview from "@/components/cases/CaseOverview";
+import CasePrintRecord from "@/components/cases/CasePrintRecord";
 import CaseStatusTracker from "@/components/cases/CaseStatusTracker";
+import { downloadCasePdf } from "@/lib/case-export";
 
 const workspaceTabs = ["Overview", "Status", "Timeline", "Hearings", "Filed documents", "Orders"] as const;
 type Tab = (typeof workspaceTabs)[number];
@@ -78,7 +81,7 @@ export default function UnifiedCaseWorkspace({ caseData: initialCase }: { caseDa
     const match = resolveWorkspaceTab(requestedTab);
     if (match) setTab(match);
   }, [initialCase, requestedTab]);
-  const openActions = useMemo(() => caseData.actionsRequired.filter((action) => action.status === "open").sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority]), [caseData.actionsRequired]);
+  const openActions = useMemo(() => caseData.actionsRequired.filter((action) => action.status === "open" || action.status === "requested" || action.status === "issued" || action.status === "assigned" || action.status === "attempted" || action.status === "clarification-requested").sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority]), [caseData.actionsRequired]);
   const showPracticeActions = role === "advocate";
   const filedRows = useMemo(() => filedDocumentRows(caseData).filter((row) => row.title.toLowerCase().includes(search.toLowerCase()) || row.type.toLowerCase().includes(search.toLowerCase()) || row.status.toLowerCase().includes(search.toLowerCase())), [caseData, search]);
   const orderDocuments = useMemo(
@@ -96,7 +99,7 @@ export default function UnifiedCaseWorkspace({ caseData: initialCase }: { caseDa
   const currentAction = showPracticeActions ? openActions[0] : undefined;
 
   return <div className="unified-case">
-    <Link className="back-link" href={role ? roleConfig[role].home : "/my-nyaya"}>← {role ? roleConfig[role].workspace : "My Nyaya"}</Link>
+    <BackLink href={role ? roleConfig[role].home : "/my-nyaya"}>{role ? roleConfig[role].workspace : "My Nyaya"}</BackLink>
     <header className="unified-case-header">
       <div className="unified-case-identity">
         {caseData.demo && <span className="demo-pill">Demo case</span>}
@@ -106,6 +109,14 @@ export default function UnifiedCaseWorkspace({ caseData: initialCase }: { caseDa
           <code>{caseData.id}</code>
         </p>
         <p className="court-label">{caseData.court.name} · {caseData.court.establishment}</p>
+        <div className="case-export-toolbar" aria-label="Print and download">
+          <button type="button" className="doc-toolbar-btn" onClick={() => window.print()}>
+            <Printer aria-hidden="true" /> Print
+          </button>
+          <button type="button" className="doc-toolbar-btn" onClick={() => downloadCasePdf(caseData)}>
+            <Download aria-hidden="true" /> Download PDF
+          </button>
+        </div>
       </div>
       <CaseHeaderStatus caseData={caseData} role={role} onOpenHearings={() => setTab("Hearings")} />
     </header>
@@ -122,6 +133,7 @@ export default function UnifiedCaseWorkspace({ caseData: initialCase }: { caseDa
       {tab === "Filed documents" && <motion.div key="filed-documents" {...panel}><FiledDocuments caseData={caseData} rows={filedRows} search={search} setSearch={setSearch} highlightedDocumentId={highlightedDocumentId} role={role} /></motion.div>}
       {tab === "Orders" && <motion.div key="orders" {...panel}><RecordList eyebrow="Orders" heading="Court orders" empty="No orders are recorded on this case yet." items={orderDocuments.map((document) => ({ id: document.id, href: `/cases/${caseData.id}/documents/${document.id}`, status: document.processing?.classification ?? "Order", title: document.title, detail: `${dateLabel(document.date)} · ${document.pages} pages · ${document.addedBy}` }))} /></motion.div>}
     </AnimatePresence></main><ActionRail caseId={caseData.id} caseData={caseData} action={currentAction} /></div>
+    <CasePrintRecord caseData={caseData} />
     {highlightedDocumentId && caseData.documents.some((document) => document.id === highlightedDocumentId) && <div className="case-toast" role="status"><CheckCircle2 aria-hidden="true" /><span><b>Document added to case</b>{caseData.documents.find((document) => document.id === highlightedDocumentId)?.title} is now available in this case record.</span></div>}
   </div>;
 }
@@ -200,7 +212,6 @@ function RecordList({ eyebrow, heading, empty, items }: { eyebrow: string; headi
 
 function ActionRail({ caseId, caseData, action }: { caseId: string; caseData: UnifiedCase; action?: CaseAction }) {
   const actions = [
-    { label: "File Document", href: `/cases/${caseId}/documents/upload` },
     { label: "Request Certified Copy", href: "/certified-copy" },
     { label: "View Cause List", href: causeListHref(caseData.court) },
     { label: "Create Reminder", href: `/cases/${caseId}/reminder` }
@@ -208,6 +219,8 @@ function ActionRail({ caseId, caseData, action }: { caseId: string; caseData: Un
   return <aside className="unified-action-rail" aria-label="What you can do">
     <section className="rail-actions">
       <h2 className="rail-heading">What you can do</h2>
+      <button type="button" onClick={() => window.print()}>Print case <ChevronRight aria-hidden="true" /></button>
+      <button type="button" onClick={() => downloadCasePdf(caseData)}>Download PDF <ChevronRight aria-hidden="true" /></button>
       {actions.map((item) => <Link href={item.href} key={item.label}>{item.label} <ChevronRight aria-hidden="true" /></Link>)}
     </section>
     <section><span className="eyebrow">Case at a glance</span><p><b>Case type</b>{caseData.caseType}</p><p><b>Court</b>{caseData.court.name}</p><p><b>Presiding judge</b>{caseData.court.judge}</p><p><b>Current stage</b>{caseData.stage.current}</p><p><b>Next date</b>{dateLabel(caseData.nextHearing.date)}</p><p><b>Last updated</b>{dateLabel(caseData.status.updatedAt)}</p></section>

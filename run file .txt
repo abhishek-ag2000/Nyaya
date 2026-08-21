@@ -1,6 +1,6 @@
 open terminal
 
-C:\Users\abhis\Documents\ChatGPT\
+cd C:\Users\abhis\Documents\ChatGPT\
 
 cd '.\New project\'
 
